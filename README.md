@@ -13,7 +13,7 @@
 
   [Features](#-features) · [Installation](#-installation) · [Quick Start](#-quick-start) · [MCP Integration](#-mcp-integration) · [Architecture](#-architecture) · [Contributing](#-contributing)
 
-  🌐 **[fanaticalnerd.com/Spectra](https://fanaticalnerd.com/Spectra..html)**
+  🌐 **[fanaticalnerd.com/Spectra](https://fanaticalnerd.com/Spectra.html)**
 
 </div>
 
