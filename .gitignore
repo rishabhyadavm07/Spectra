@@ -1,0 +1,34 @@
+# === Logs ===
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# === Dependencies ===
+node_modules
+
+# === Build output ===
+dist
+dist-ssr
+target
+
+# === IDE / OS ===
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.local
+Thumbs.db
+
+# === Tauri sidecar binaries (built at compile time) ===
+crates/spectra-tauri/bin/
+
+# === Misc ===
+body.html

@@ -1,0 +1,20 @@
+[package]
+name = "spectra-mcp"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "spectra-mcp"
+path = "src/main.rs"
+
+[dependencies]
+spectra-core = { path = "../spectra-core" }
+spectra-api = { path = "../spectra-api" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+chrono = { workspace = true }
+schemars = { workspace = true }
+rmcp = { version = "2.1", features = ["server", "transport-io", "macros"] }
+anyhow = "1"
