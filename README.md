@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="crates/spectra-tauri/app-icon.png" alt="Spectra Logo" width="128" height="128" />
+  <img src="assets/logo.png" alt="Spectra Logo" width="128" height="128" />
 
   # Spectra
 
