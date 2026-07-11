@@ -175,6 +175,11 @@ pub async fn start_oauth_flow(ctx: State<'_, AppContext>, request_id: String) ->
 }
 
 #[tauri::command]
+pub async fn finish_oauth_flow(ctx: State<'_, AppContext>, url: String) -> CmdResult<()> {
+    map_err(oauth::finish_oauth_flow(&ctx, url).await)
+}
+
+#[tauri::command]
 pub async fn get_oauth_status(ctx: State<'_, AppContext>, request_id: String) -> CmdResult<OAuthStatus> {
     map_err(oauth::get_oauth_status(&ctx, request_id).await)
 }

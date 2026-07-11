@@ -10,6 +10,16 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::RwLock;
 
+pub(crate) struct PendingExchange {
+    pub request_id: String,
+    pub redirect_uri: String,
+    pub token_url: String,
+    pub client_id: String,
+    pub client_secret: Option<String>,
+    pub code_verifier: Option<String>,
+    pub options: OAuth2Options,
+}
+
 /// Per-request named-token state: every token fetched for this request so
 /// far, plus which one (by name) is "current" — the one `cached_token`
 /// returns and the one auth signing actually uses.
@@ -32,6 +42,7 @@ struct TokenSlots {
 pub struct OAuthStore {
     statuses: RwLock<HashMap<String, OAuthStatus>>,
     slots: RwLock<HashMap<String, TokenSlots>>,
+    pending_exchanges: RwLock<HashMap<String, PendingExchange>>,
 }
 
 impl OAuthStore {
@@ -126,6 +137,14 @@ impl OAuthStore {
             None
         }
     }
+
+    pub(crate) async fn add_pending_exchange(&self, state: String, exchange: PendingExchange) {
+        self.pending_exchanges.write().await.insert(state, exchange);
+    }
+
+    pub(crate) async fn take_pending_exchange(&self, state: &str) -> Option<PendingExchange> {
+        self.pending_exchanges.write().await.remove(state)
+    }
 }
 
 fn generate_pkce_pair() -> (String, String) {
@@ -173,18 +192,30 @@ pub async fn start_flow(
 
             let _ = open::that(url.to_string());
 
-            tokio::spawn(run_loopback_and_exchange(
-                http,
-                store,
-                request_id,
-                redirect_uri,
-                state,
-                token_url,
-                client_id,
-                client_secret,
-                None,
-                options,
-            ));
+            if redirect_uri.starts_with("spectra://") {
+                store.add_pending_exchange(state.clone(), PendingExchange {
+                    request_id: request_id.clone(),
+                    redirect_uri,
+                    token_url,
+                    client_id,
+                    client_secret,
+                    code_verifier: None,
+                    options,
+                }).await;
+            } else {
+                tokio::spawn(run_loopback_and_exchange(
+                    http,
+                    store,
+                    request_id,
+                    redirect_uri,
+                    state,
+                    token_url,
+                    client_id,
+                    client_secret,
+                    None,
+                    options,
+                ));
+            }
 
             Ok(action)
         }
@@ -209,18 +240,30 @@ pub async fn start_flow(
 
             let _ = open::that(url.to_string());
 
-            tokio::spawn(run_loopback_and_exchange(
-                http,
-                store,
-                request_id,
-                redirect_uri,
-                state,
-                token_url,
-                client_id,
-                None,
-                Some(verifier),
-                options,
-            ));
+            if redirect_uri.starts_with("spectra://") {
+                store.add_pending_exchange(state.clone(), PendingExchange {
+                    request_id: request_id.clone(),
+                    redirect_uri,
+                    token_url,
+                    client_id,
+                    client_secret: None,
+                    code_verifier: Some(verifier),
+                    options,
+                }).await;
+            } else {
+                tokio::spawn(run_loopback_and_exchange(
+                    http,
+                    store,
+                    request_id,
+                    redirect_uri,
+                    state,
+                    token_url,
+                    client_id,
+                    None,
+                    Some(verifier),
+                    options,
+                ));
+            }
 
             Ok(action)
         }
@@ -265,6 +308,49 @@ pub async fn start_flow(
             Err(ApiError::Unsupported(
                 "this grant does not require interactive flow; call send_request directly".into(),
             ))
+        }
+    }
+}
+
+pub async fn finish_flow_from_url(
+    http: &reqwest::Client,
+    store: &Arc<OAuthStore>,
+    callback_url: &str,
+) -> ApiResult<()> {
+    let url = reqwest::Url::parse(callback_url).map_err(|e| ApiError::Validation(e.to_string()))?;
+    let params: HashMap<String, String> = url.query_pairs().into_owned().collect();
+
+    let state = params.get("state").ok_or_else(|| ApiError::Auth("missing state in callback".into()))?;
+    let pending = store.take_pending_exchange(state).await
+        .ok_or_else(|| ApiError::Auth("no pending OAuth flow found for this state".into()))?;
+
+    if let Some(err) = params.get("error") {
+        store.set(&pending.request_id, OAuthStatus::Failed { error: format!("OAuth authorization failed: {err}") }).await;
+        return Err(ApiError::Auth(format!("OAuth authorization failed: {err}")));
+    }
+
+    let code = params.get("code").ok_or_else(|| ApiError::Auth("missing authorization code in callback".into()))?;
+
+    let result = oauth2::exchange_authorization_code(
+        http,
+        &pending.token_url,
+        &pending.client_id,
+        pending.client_secret.as_deref(),
+        code,
+        &pending.redirect_uri,
+        pending.code_verifier.as_deref(),
+        &pending.options,
+    )
+    .await;
+
+    match result {
+        Ok(token) => {
+            store.save_token(&pending.request_id, None, token).await;
+            Ok(())
+        }
+        Err(e) => {
+            store.set(&pending.request_id, OAuthStatus::Failed { error: e.to_string() }).await;
+            Err(e)
         }
     }
 }

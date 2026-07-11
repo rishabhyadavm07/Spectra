@@ -19,6 +19,10 @@ pub async fn start_oauth_flow(ctx: &AppContext, request_id: String) -> ApiResult
     oauth_flow::start_flow(ctx.http.clone(), ctx.oauth_store.clone(), request_id, grant).await
 }
 
+pub async fn finish_oauth_flow(ctx: &AppContext, url: String) -> ApiResult<()> {
+    oauth_flow::finish_flow_from_url(&ctx.http, &ctx.oauth_store, &url).await
+}
+
 pub async fn get_oauth_status(ctx: &AppContext, request_id: String) -> ApiResult<OAuthStatus> {
     Ok(ctx.oauth_store.get(&request_id).await)
 }

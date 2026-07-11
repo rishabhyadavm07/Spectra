@@ -25,6 +25,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_deep_link::init())
         .manage(ctx)
         .manage(AutomationState::default())
         .setup(|app| {
@@ -57,6 +58,7 @@ pub fn run() {
             commands::preview_headers,
             commands::clear_cookies,
             commands::start_oauth_flow,
+            commands::finish_oauth_flow,
             commands::get_oauth_status,
             commands::cancel_oauth_flow,
             commands::fetch_oauth_token,

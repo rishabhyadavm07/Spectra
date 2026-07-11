@@ -148,11 +148,23 @@ export function AuthPanel({
       </div>
 
       {auth.type === "InheritFromParent" && (
-        <p className="hint-text">
-          {effectiveAuth
-            ? `This request uses "${describeAuth(effectiveAuth)}" from a parent folder or the workspace.`
-            : "This request has no auth configured on it or any parent folder/workspace — no Authorization is sent."}
-        </p>
+        <>
+          <p className="hint-text">
+            {effectiveAuth
+              ? `This request uses "${describeAuth(effectiveAuth)}" from a parent folder or the workspace.`
+              : "This request has no auth configured on it or any parent folder/workspace — no Authorization is sent."}
+          </p>
+          {effectiveAuth?.type === "OAuth2" && (
+            <OAuth2Panel
+              requestId={requestId}
+              grant={effectiveAuth.grant}
+              onChange={() => {}}
+              onCommit={() => {}}
+              variableNames={variableNames}
+              isInherited={true}
+            />
+          )}
+        </>
       )}
 
       {auth.type === "Basic" && (

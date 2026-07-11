@@ -85,6 +85,8 @@ export const api = {
 
   startOAuthFlow: (requestId: string) =>
     invoke<PendingUserAction>("start_oauth_flow", { requestId }),
+  finishOAuthFlow: (url: string) =>
+    invoke<void>("finish_oauth_flow", { url }),
   getOAuthStatus: (requestId: string) =>
     invoke<OAuthStatus>("get_oauth_status", { requestId }),
   cancelOAuthFlow: (requestId: string) =>

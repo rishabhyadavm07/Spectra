@@ -77,7 +77,7 @@ export function defaultGrant(type: OAuth2Grant["type"]): OAuth2Grant {
         client_secret: null,
         auth_url: "",
         token_url: "",
-        redirect_uri: "http://127.0.0.1:4756/callback",
+        redirect_uri: "spectra://oauth/callback",
         scope: null,
         options,
       };
@@ -87,7 +87,7 @@ export function defaultGrant(type: OAuth2Grant["type"]): OAuth2Grant {
         client_id: "",
         auth_url: "",
         token_url: "",
-        redirect_uri: "http://127.0.0.1:4756/callback",
+        redirect_uri: "spectra://oauth/callback",
         scope: null,
         options,
       };
@@ -105,7 +105,7 @@ export function defaultGrant(type: OAuth2Grant["type"]): OAuth2Grant {
         type,
         client_id: "",
         auth_url: "",
-        redirect_uri: "http://127.0.0.1:4756/callback",
+        redirect_uri: "spectra://oauth/callback",
         scope: null,
         options,
       };
@@ -118,6 +118,7 @@ interface Props {
   onChange: (grant: OAuth2Grant) => void;
   onCommit: (grant: OAuth2Grant) => void;
   variableNames: string[];
+  isInherited?: boolean;
 }
 
 function formatExpiry(iso: string | null): string {
@@ -136,6 +137,7 @@ export function OAuth2Panel({
   onChange,
   onCommit,
   variableNames,
+  isInherited,
 }: Props) {
   const [tokens, setTokens] = useState<NamedOAuthToken[]>([]);
   const [tokenName, setTokenName] = useState("");
@@ -263,6 +265,7 @@ export function OAuth2Panel({
         <label>Grant Type</label>
         <select
           value={grant.type}
+          disabled={isInherited}
           onChange={(e) =>
             set(defaultGrant(e.target.value as OAuth2Grant["type"]))
           }
@@ -343,7 +346,9 @@ export function OAuth2Panel({
         />
       </div>
 
-      <div className="oauth2-field">
+      {!isInherited && (
+        <>
+          <div className="oauth2-field">
         <label>Client ID</label>
         <VarInput
           placeholder="Client ID"
@@ -555,6 +560,8 @@ export function OAuth2Panel({
             onRemove={(i) => removeExtraParam("refresh_request_params", i)}
           />
         </div>
+      )}
+      </>
       )}
 
       {grantMeta?.interactive && grant.type !== "Implicit" && (
