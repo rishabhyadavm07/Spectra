@@ -206,6 +206,11 @@ export function VarTextarea({
                 className="var-pill"
                 style={{ pointerEvents: "auto" }}
                 onMouseDown={(e) => handlePillClick(e, token.varName!)}
+                title={
+                  popoverCtx?.activeEnvironment?.variables[token.varName!]?.secret
+                    ? "Secret Variable"
+                    : popoverCtx?.activeEnvironment?.variables[token.varName!]?.value ?? "Unknown Variable"
+                }
               >
                 {token.text}
               </span>

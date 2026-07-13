@@ -390,7 +390,7 @@ async fn handle_screenshot_request(app: &AppHandle, req: ScreenshotRequest) -> S
         };
     }
 
-    match screenshot::capture_own_window(&req.save_path) {
+    match capture_screenshot_with_focus(app, &req.save_path).await {
         Ok(path) => ScreenshotResponse { success: true, saved_path: Some(path), error: None },
         Err(e) => ScreenshotResponse { success: false, saved_path: None, error: Some(e) },
     }
@@ -414,7 +414,7 @@ async fn handle_send_and_screenshot_request(app: &AppHandle, req: SendAndScreens
         };
     }
 
-    match screenshot::capture_own_window(&req.save_path) {
+    match capture_screenshot_with_focus(app, &req.save_path).await {
         Ok(path) => SendAndScreenshotResponse { success: true, saved_path: Some(path), report: Some(report), error: None },
         Err(e) => SendAndScreenshotResponse { success: false, saved_path: None, report: Some(report), error: Some(e) },
     }
@@ -446,7 +446,7 @@ async fn handle_search_response_request(app: &AppHandle, req: SearchResponseRequ
     };
 
     // Even if match_count is 0, we can still take a screenshot
-    match screenshot::capture_own_window(&req.save_path) {
+    match capture_screenshot_with_focus(app, &req.save_path).await {
         Ok(path) => SearchResponseIpcResponse { 
             success: true, 
             result: Some(SearchResponseResult {
@@ -458,4 +458,14 @@ async fn handle_search_response_request(app: &AppHandle, req: SearchResponseRequ
         },
         Err(e) => SearchResponseIpcResponse { success: false, result: None, error: Some(e) },
     }
+}
+
+async fn capture_screenshot_with_focus(app: &AppHandle, save_path: &str) -> Result<String, String> {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+        tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
+    }
+    screenshot::capture_own_window(save_path)
 }

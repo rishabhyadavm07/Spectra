@@ -43,6 +43,7 @@ pub struct OAuthStore {
     statuses: RwLock<HashMap<String, OAuthStatus>>,
     slots: RwLock<HashMap<String, TokenSlots>>,
     pending_exchanges: RwLock<HashMap<String, PendingExchange>>,
+    tasks: RwLock<HashMap<String, tokio::task::JoinHandle<()>>>,
 }
 
 impl OAuthStore {
@@ -145,6 +146,19 @@ impl OAuthStore {
     pub(crate) async fn take_pending_exchange(&self, state: &str) -> Option<PendingExchange> {
         self.pending_exchanges.write().await.remove(state)
     }
+
+    pub async fn register_task(&self, request_id: String, handle: tokio::task::JoinHandle<()>) {
+        // If there's already a task running for this request_id, cancel it first
+        if let Some(old) = self.tasks.write().await.insert(request_id, handle) {
+            old.abort();
+        }
+    }
+
+    pub async fn cancel_task(&self, request_id: &str) {
+        if let Some(handle) = self.tasks.write().await.remove(request_id) {
+            handle.abort();
+        }
+    }
 }
 
 fn generate_pkce_pair() -> (String, String) {
@@ -192,7 +206,7 @@ pub async fn start_flow(
 
             let _ = open::that(url.to_string());
 
-            if redirect_uri.starts_with("spectra://") {
+            if redirect_uri.starts_with("spectra://") || redirect_uri.starts_with("spectra-dev://") {
                 store.add_pending_exchange(state.clone(), PendingExchange {
                     request_id: request_id.clone(),
                     redirect_uri,
@@ -203,10 +217,10 @@ pub async fn start_flow(
                     options,
                 }).await;
             } else {
-                tokio::spawn(run_loopback_and_exchange(
+                let handle = tokio::spawn(run_loopback_and_exchange(
                     http,
-                    store,
-                    request_id,
+                    store.clone(),
+                    request_id.clone(),
                     redirect_uri,
                     state,
                     token_url,
@@ -215,6 +229,7 @@ pub async fn start_flow(
                     None,
                     options,
                 ));
+                store.register_task(request_id, handle).await;
             }
 
             Ok(action)
@@ -240,7 +255,7 @@ pub async fn start_flow(
 
             let _ = open::that(url.to_string());
 
-            if redirect_uri.starts_with("spectra://") {
+            if redirect_uri.starts_with("spectra://") || redirect_uri.starts_with("spectra-dev://") {
                 store.add_pending_exchange(state.clone(), PendingExchange {
                     request_id: request_id.clone(),
                     redirect_uri,
@@ -251,10 +266,10 @@ pub async fn start_flow(
                     options,
                 }).await;
             } else {
-                tokio::spawn(run_loopback_and_exchange(
+                let handle = tokio::spawn(run_loopback_and_exchange(
                     http,
-                    store,
-                    request_id,
+                    store.clone(),
+                    request_id.clone(),
                     redirect_uri,
                     state,
                     token_url,
@@ -263,6 +278,7 @@ pub async fn start_flow(
                     Some(verifier),
                     options,
                 ));
+                store.register_task(request_id, handle).await;
             }
 
             Ok(action)
@@ -280,8 +296,10 @@ pub async fn start_flow(
             store.set(&request_id, OAuthStatus::Pending { user_action: action.clone() }).await;
 
             let _ = open::that(&verification_url);
+            let req_id = request_id.clone();
+            let store_clone = store.clone();
 
-            tokio::spawn(async move {
+            let handle = tokio::spawn(async move {
                 let result = oauth2::poll_device_code(
                     &http,
                     &token_url,
@@ -296,6 +314,7 @@ pub async fn start_flow(
                     Err(e) => store.set(&request_id, OAuthStatus::Failed { error: e.to_string() }).await,
                 }
             });
+            store_clone.register_task(req_id, handle).await;
 
             Ok(action)
         }

@@ -1886,7 +1886,7 @@ button.workspace-switcher-item:hover {
 .var-input-pill-layer {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 2;
   pointer-events: none;
   overflow: hidden;
   white-space: pre;
@@ -2264,7 +2264,7 @@ button.workspace-switcher-item:hover {
 .oauth2-token-value-row {
   display: flex;
   gap: 0.3em;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .oauth2-token-value {

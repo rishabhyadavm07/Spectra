@@ -28,6 +28,7 @@ pub async fn get_oauth_status(ctx: &AppContext, request_id: String) -> ApiResult
 }
 
 pub async fn cancel_oauth_flow(ctx: &AppContext, request_id: String) -> ApiResult<()> {
+    ctx.oauth_store.cancel_task(&request_id).await;
     ctx.oauth_store.set(&request_id, OAuthStatus::NotStarted).await;
     Ok(())
 }
