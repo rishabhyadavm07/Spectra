@@ -171,12 +171,16 @@ pub struct AutomationScreenshotParams {
     /// Absolute (or cwd-relative) file path to save the screenshot to, e.g. "/tmp/request.png".
     pub save_path: String,
     pub environment_id: Option<String>,
+    /// If true, force the GUI to re-send the request even if it already has a response.
+    pub force_send: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct AutomationFocusParams {
     pub request_id: String,
     pub environment_id: Option<String>,
+    /// If true, force the GUI to re-send the request even if it already has a response.
+    pub force_send: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -577,7 +581,7 @@ impl SpectraServer {
     // --- Automation (drives the already-running GUI process) ------------
 
     #[tool(
-        description = "Ask the already-running Spectra GUI app to open a request's tab, send it (if it has no response yet), capture a screenshot of the window showing both the request and its response, and save it to save_path. Requires the GUI to already be running (`npm run tauri dev` or the built app) — returns a clear error if it isn't. This does not work headlessly; it drives the real user-facing window."
+        description = "Ask the already-running Spectra GUI app to open a request's tab, send it (if it has no response yet or force_send is true), wait for the response to render, and take a screenshot of the window. Requires the GUI to already be running — returns a clear error if it isn't."
     )]
     async fn automation_screenshot_request(
         &self,
@@ -585,19 +589,19 @@ impl SpectraServer {
     ) -> Result<String, String> {
         let p = params.0;
         let saved_path =
-            crate::automation_client::request_screenshot(p.request_id, p.save_path, p.environment_id).await?;
+            crate::automation_client::request_screenshot(p.request_id, p.save_path, p.environment_id, p.force_send.unwrap_or(false)).await?;
         Ok(to_json(&serde_json::json!({ "success": true, "saved_path": saved_path })))
     }
 
     #[tool(
-        description = "Ask the already-running Spectra GUI app to open a request's tab and send it (if it has no response yet), without taking a screenshot. Returns a status report: which workspace/request it resolved to, whether it actually rendered a response or error, and the send error if any. Useful to navigate the GUI to a request (e.g. during a screen-share) or to verify the request resolves and sends correctly before calling automation_screenshot_request. Requires the GUI to already be running — returns a clear error if it isn't."
+        description = "Ask the already-running Spectra GUI app to open a request's tab and send it (if it has no response yet or force_send is true), without taking a screenshot. Returns a status report: which workspace/request it resolved to, whether it actually rendered a response or error, and the send error if any. Useful to navigate the GUI to a request (e.g. during a screen-share) or to verify the request resolves and sends correctly before calling automation_screenshot_request. Requires the GUI to already be running — returns a clear error if it isn't."
     )]
     async fn automation_focus_request(
         &self,
         params: Parameters<AutomationFocusParams>,
     ) -> Result<String, String> {
         let p = params.0;
-        let report = crate::automation_client::request_focus(p.request_id, p.environment_id).await?;
+        let report = crate::automation_client::request_focus(p.request_id, p.environment_id, p.force_send.unwrap_or(false)).await?;
         Ok(to_json(&report))
     }
 
@@ -780,7 +784,7 @@ impl SpectraServer {
 
         // 5. Screenshot if requested
         let screenshot_path = if let Some(save_path) = p.save_path {
-            match crate::automation_client::request_screenshot(req.id.clone(), save_path, None).await {
+            match crate::automation_client::request_screenshot(req.id.clone(), save_path, None, true).await {
                 Ok(path) => Some(path),
                 Err(e) => Some(format!("Screenshot failed: {}", e))
             }

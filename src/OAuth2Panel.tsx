@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Eye, EyeOff, Copy, Trash2 } from "lucide-react";
 import { api } from "./api";
 import type {
   AddAuthDataTo,
@@ -77,7 +78,7 @@ export function defaultGrant(type: OAuth2Grant["type"]): OAuth2Grant {
         client_secret: null,
         auth_url: "",
         token_url: "",
-        redirect_uri: "http://127.0.0.1:4756/callback",
+        redirect_uri: "spectra://oauth/callback",
         scope: null,
         options,
       };
@@ -87,7 +88,7 @@ export function defaultGrant(type: OAuth2Grant["type"]): OAuth2Grant {
         client_id: "",
         auth_url: "",
         token_url: "",
-        redirect_uri: "http://127.0.0.1:4756/callback",
+        redirect_uri: "spectra://oauth/callback",
         scope: null,
         options,
       };
@@ -105,7 +106,7 @@ export function defaultGrant(type: OAuth2Grant["type"]): OAuth2Grant {
         type,
         client_id: "",
         auth_url: "",
-        redirect_uri: "http://127.0.0.1:4756/callback",
+        redirect_uri: "spectra://oauth/callback",
         scope: null,
         options,
       };
@@ -118,6 +119,7 @@ interface Props {
   onChange: (grant: OAuth2Grant) => void;
   onCommit: (grant: OAuth2Grant) => void;
   variableNames: string[];
+  isInherited?: boolean;
 }
 
 function formatExpiry(iso: string | null): string {
@@ -136,6 +138,7 @@ export function OAuth2Panel({
   onChange,
   onCommit,
   variableNames,
+  isInherited,
 }: Props) {
   const [tokens, setTokens] = useState<NamedOAuthToken[]>([]);
   const [tokenName, setTokenName] = useState("");
@@ -263,6 +266,7 @@ export function OAuth2Panel({
         <label>Grant Type</label>
         <select
           value={grant.type}
+          disabled={isInherited}
           onChange={(e) =>
             set(defaultGrant(e.target.value as OAuth2Grant["type"]))
           }
@@ -299,25 +303,44 @@ export function OAuth2Panel({
             <>
               <div className="oauth2-field">
                 <div className="oauth2-token-value-row">
-                  <input
-                    className="oauth2-token-value"
-                    readOnly
-                    type={showTokenValue ? "text" : "password"}
-                    value={currentToken.token.access_token}
-                  />
+                  {showTokenValue ? (
+                    <textarea
+                      className="oauth2-token-value-textarea"
+                      readOnly
+                      rows={6}
+                      value={currentToken.token.access_token}
+                    />
+                  ) : (
+                    <input
+                      className="oauth2-token-value"
+                      readOnly
+                      type="password"
+                      value={currentToken.token.access_token}
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => setShowTokenValue((v) => !v)}
                     title="Show/hide token"
+                    className="icon-button"
                   >
-                    {showTokenValue ? "🙈" : "👁"}
+                    {showTokenValue ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(currentToken.token.access_token)}
+                    title="Copy token"
+                    className="icon-button"
+                  >
+                    <Copy size={16} />
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDeleteToken(currentToken.name)}
                     title="Delete this token"
+                    className="icon-button"
                   >
-                    🗑
+                    <Trash2 size={16} />
                   </button>
                 </div>
                 {currentToken.token.expires_at && (
@@ -343,7 +366,9 @@ export function OAuth2Panel({
         />
       </div>
 
-      <div className="oauth2-field">
+      {!isInherited && (
+        <>
+          <div className="oauth2-field">
         <label>Client ID</label>
         <VarInput
           placeholder="Client ID"
@@ -556,12 +581,31 @@ export function OAuth2Panel({
           />
         </div>
       )}
+      </>
+      )}
 
       {grantMeta?.interactive && grant.type !== "Implicit" && (
         <div className="oauth-flow-box">
-          <button onClick={startInteractiveFlow} disabled={flowBusy}>
-            {flowBusy ? "Waiting for authorization…" : "Get New Access Token"}
-          </button>
+          <div style={{ display: "flex", gap: "0.5em", alignItems: "center" }}>
+            <button onClick={startInteractiveFlow} disabled={flowBusy} style={{ flex: 1 }}>
+              {flowBusy ? "Waiting for authorization…" : "Get New Access Token"}
+            </button>
+            {flowBusy && (
+              <button
+                onClick={async () => {
+                  try {
+                    await api.cancelOAuthFlow(requestId);
+                  } catch {}
+                  setFlowBusy(false);
+                  setOauthStatus({ status: "Failed", error: "Cancelled by user." });
+                }}
+                style={{ flex: 0, padding: "0 1em" }}
+                title="Cancel Authorization"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
           {oauthStatus?.status === "Pending" &&
             oauthStatus.user_action.kind === "DeviceCode" && (
               <p>

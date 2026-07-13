@@ -27,4 +27,5 @@ reqwest = { workspace = true }
 spectra-core = { path = "../spectra-core" }
 spectra-api = { path = "../spectra-api" }
 xcap = "0.9"
+tauri-plugin-deep-link = "2"
 

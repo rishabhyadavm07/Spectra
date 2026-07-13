@@ -60,6 +60,8 @@ pub struct ScreenshotRequest {
     pub save_path: String,
     #[serde(default)]
     pub environment_id: Option<String>,
+    #[serde(default)]
+    pub force_send: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -79,6 +81,8 @@ pub struct FocusRequest {
     pub request_id: String,
     #[serde(default)]
     pub environment_id: Option<String>,
+    #[serde(default)]
+    pub force_send: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -329,6 +333,7 @@ async fn wait_for_frontend(
     app: &AppHandle,
     request_id: &str,
     environment_id: Option<String>,
+    force_send: bool,
 ) -> Result<TabReadyReport, String> {
     let state = app.state::<AutomationState>();
     let notify = state.register_waiter(request_id).await;
@@ -337,6 +342,7 @@ async fn wait_for_frontend(
         request_id: request_id.to_string(),
         save_path: String::new(),
         environment_id,
+        force_send,
     };
     if let Err(e) = app.emit("automation://prepare-request", &payload) {
         state.clear_waiter(request_id).await;
@@ -361,14 +367,14 @@ async fn wait_for_frontend(
 }
 
 async fn handle_focus_request(app: &AppHandle, req: FocusRequest) -> FocusResponse {
-    match wait_for_frontend(app, &req.request_id, req.environment_id).await {
+    match wait_for_frontend(app, &req.request_id, req.environment_id, req.force_send).await {
         Ok(report) => FocusResponse { success: report.rendered, report: Some(report), error: None },
         Err(e) => FocusResponse { success: false, report: None, error: Some(e) },
     }
 }
 
 async fn handle_screenshot_request(app: &AppHandle, req: ScreenshotRequest) -> ScreenshotResponse {
-    let report = match wait_for_frontend(app, &req.request_id, req.environment_id).await {
+    let report = match wait_for_frontend(app, &req.request_id, req.environment_id, req.force_send).await {
         Ok(report) => report,
         Err(e) => return ScreenshotResponse { success: false, saved_path: None, error: Some(e) },
     };
@@ -384,14 +390,14 @@ async fn handle_screenshot_request(app: &AppHandle, req: ScreenshotRequest) -> S
         };
     }
 
-    match screenshot::capture_own_window(&req.save_path) {
+    match capture_screenshot_with_focus(app, &req.save_path).await {
         Ok(path) => ScreenshotResponse { success: true, saved_path: Some(path), error: None },
         Err(e) => ScreenshotResponse { success: false, saved_path: None, error: Some(e) },
     }
 }
 
 async fn handle_send_and_screenshot_request(app: &AppHandle, req: SendAndScreenshotRequest) -> SendAndScreenshotResponse {
-    let report = match wait_for_frontend(app, &req.request_id, req.environment_id).await {
+    let report = match wait_for_frontend(app, &req.request_id, req.environment_id, false).await {
         Ok(report) => report,
         Err(e) => return SendAndScreenshotResponse { success: false, saved_path: None, report: None, error: Some(e) },
     };
@@ -408,7 +414,7 @@ async fn handle_send_and_screenshot_request(app: &AppHandle, req: SendAndScreens
         };
     }
 
-    match screenshot::capture_own_window(&req.save_path) {
+    match capture_screenshot_with_focus(app, &req.save_path).await {
         Ok(path) => SendAndScreenshotResponse { success: true, saved_path: Some(path), report: Some(report), error: None },
         Err(e) => SendAndScreenshotResponse { success: false, saved_path: None, report: Some(report), error: Some(e) },
     }
@@ -440,7 +446,7 @@ async fn handle_search_response_request(app: &AppHandle, req: SearchResponseRequ
     };
 
     // Even if match_count is 0, we can still take a screenshot
-    match screenshot::capture_own_window(&req.save_path) {
+    match capture_screenshot_with_focus(app, &req.save_path).await {
         Ok(path) => SearchResponseIpcResponse { 
             success: true, 
             result: Some(SearchResponseResult {
@@ -452,4 +458,14 @@ async fn handle_search_response_request(app: &AppHandle, req: SearchResponseRequ
         },
         Err(e) => SearchResponseIpcResponse { success: false, result: None, error: Some(e) },
     }
+}
+
+async fn capture_screenshot_with_focus(app: &AppHandle, save_path: &str) -> Result<String, String> {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+        tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
+    }
+    screenshot::capture_own_window(save_path)
 }

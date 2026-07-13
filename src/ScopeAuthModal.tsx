@@ -21,13 +21,16 @@ const AUTH_TYPES: { value: AuthConfig["type"]; label: string }[] = [
   { value: "Hawk", label: "Hawk" },
 ];
 
-const OAUTH2_NONINTERACTIVE_GRANTS: {
+const OAUTH2_SCOPE_GRANTS: {
   value: OAuth2Grant["type"];
   label: string;
 }[] = [
   { value: "ClientCredentials", label: "Client Credentials" },
   { value: "Password", label: "Password Credentials" },
   { value: "RefreshToken", label: "Refresh Token" },
+  { value: "AuthorizationCode", label: "Authorization Code" },
+  { value: "AuthorizationCodePkce", label: "Authorization Code (With PKCE)" },
+  { value: "DeviceCode", label: "Device Code" },
 ];
 
 function defaultAuth(type: AuthConfig["type"]): AuthConfig {
@@ -79,13 +82,8 @@ interface Props {
 
 /** Auth editor for a workspace or folder — the "collection auth" every
  * request under it inherits by default unless overridden further down the
- * chain. Its OAuth2 support is narrower than the per-request AuthPanel:
- * only the non-interactive grants (Client Credentials/Password/Refresh
- * Token) are usable here, since those just POST to a token URL with no
- * request-specific context. Authorization Code/PKCE/Device Code need a
- * concrete request to run their browser/loopback flow against, so they're
- * shown but disabled with an explanatory note, same as how the per-request
- * panel already disables the unsupported Implicit grant.
+ * chain. Interactive grants can be configured here, but tokens must be
+ * fetched from the Auth tab of a specific request that inherits them.
  */
 export function ScopeAuthModal({
   scope,
@@ -365,17 +363,16 @@ export function ScopeAuthModal({
           {auth.type === "OAuth2" && (
             <div className="oauth2-panel">
               <p className="hint-text oauth2-scope-note">
-                Only non-interactive grants (Client Credentials/Password/Refresh
-                Token) are supported at the {scope} level — a token is fetched
-                automatically on Send. Authorization Code/PKCE/Device Code need
-                a specific request to run their browser flow against, so
-                configure those on the request itself instead.
+                Tokens for non-interactive grants (Client Credentials/Password/Refresh
+                Token) are fetched automatically on Send. For interactive grants
+                (Authorization Code/PKCE/Device Code), configure them here but
+                fetch the actual token from the Auth tab of a specific request.
               </p>
               <div className="oauth2-field">
                 <label>Grant Type</label>
                 <select
                   value={
-                    OAUTH2_NONINTERACTIVE_GRANTS.some(
+                    OAUTH2_SCOPE_GRANTS.some(
                       (g) => g.value === auth.grant.type,
                     )
                       ? auth.grant.type
@@ -390,13 +387,33 @@ export function ScopeAuthModal({
                     })
                   }
                 >
-                  {OAUTH2_NONINTERACTIVE_GRANTS.map((g) => (
+                  {OAUTH2_SCOPE_GRANTS.map((g) => (
                     <option key={g.value} value={g.value}>
                       {g.label}
                     </option>
                   ))}
                 </select>
               </div>
+              {"auth_url" in auth.grant && (
+                <div className="oauth2-field">
+                  <label>Authorization URL</label>
+                  <VarInput
+                    value={auth.grant.auth_url}
+                    onChange={(v) => grantField("auth_url", v)}
+                    variableNames={[]}
+                  />
+                </div>
+              )}
+              {"device_auth_url" in auth.grant && (
+                <div className="oauth2-field">
+                  <label>Device Authorization URL</label>
+                  <VarInput
+                    value={auth.grant.device_auth_url}
+                    onChange={(v) => grantField("device_auth_url", v)}
+                    variableNames={[]}
+                  />
+                </div>
+              )}
               {"token_url" in auth.grant && (
                 <div className="oauth2-field">
                   <label>Access Token URL</label>
@@ -422,6 +439,16 @@ export function ScopeAuthModal({
                     type="password"
                     value={auth.grant.client_secret ?? ""}
                     onChange={(v) => grantField("client_secret", v)}
+                    variableNames={[]}
+                  />
+                </div>
+              )}
+              {"redirect_uri" in auth.grant && (
+                <div className="oauth2-field">
+                  <label>Redirect URI (loopback)</label>
+                  <VarInput
+                    value={auth.grant.redirect_uri}
+                    onChange={(v) => grantField("redirect_uri", v)}
                     variableNames={[]}
                   />
                 </div>

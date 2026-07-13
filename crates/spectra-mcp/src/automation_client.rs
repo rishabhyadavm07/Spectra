@@ -24,9 +24,9 @@ const IPC_TIMEOUT: Duration = Duration::from_secs(35);
 #[serde(tag = "kind")]
 enum IpcRequest {
     #[serde(rename = "screenshot")]
-    Screenshot { request_id: String, save_path: String, #[serde(skip_serializing_if = "Option::is_none")] environment_id: Option<String> },
+    Screenshot { request_id: String, save_path: String, #[serde(skip_serializing_if = "Option::is_none")] environment_id: Option<String>, #[serde(default)] force_send: bool },
     #[serde(rename = "focus")]
-    Focus { request_id: String, #[serde(skip_serializing_if = "Option::is_none")] environment_id: Option<String> },
+    Focus { request_id: String, #[serde(skip_serializing_if = "Option::is_none")] environment_id: Option<String>, #[serde(default)] force_send: bool },
     #[serde(rename = "set_ui_line_numbers")]
     SetUiLineNumbers { show: bool },
     #[serde(rename = "send_and_screenshot")]
@@ -102,13 +102,14 @@ pub async fn request_screenshot(
     request_id: String,
     save_path: String,
     environment_id: Option<String>,
+    force_send: bool,
 ) -> Result<String, String> {
     let path = socket_path();
     let mut stream = UnixStream::connect(&path).await.map_err(|_| {
         "Spectra GUI is not running (couldn't connect to ~/.spectra/automation.sock) — start it with `npm run tauri dev` first".to_string()
     })?;
 
-    let req = IpcRequest::Screenshot { request_id, save_path, environment_id };
+    let req = IpcRequest::Screenshot { request_id, save_path, environment_id, force_send };
     let mut line = serde_json::to_string(&req).map_err(|e| format!("failed to encode request: {e}"))?;
     line.push('\n');
 
@@ -145,13 +146,13 @@ pub async fn request_screenshot(
 /// tool blind (no access to browser devtools from this environment) made
 /// clear that a lighter-weight "did it actually render, and what does it
 /// say" primitive was worth having on its own.
-pub async fn request_focus(request_id: String, environment_id: Option<String>) -> Result<TabReadyReport, String> {
+pub async fn request_focus(request_id: String, environment_id: Option<String>, force_send: bool) -> Result<TabReadyReport, String> {
     let path = socket_path();
     let mut stream = UnixStream::connect(&path).await.map_err(|_| {
         "Spectra GUI is not running (couldn't connect to ~/.spectra/automation.sock) — start it with `npm run tauri dev` first".to_string()
     })?;
 
-    let req = IpcRequest::Focus { request_id, environment_id };
+    let req = IpcRequest::Focus { request_id, environment_id, force_send };
     let mut line = serde_json::to_string(&req).map_err(|e| format!("failed to encode request: {e}"))?;
     line.push('\n');
 

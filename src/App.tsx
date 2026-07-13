@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { api } from "./api";
 import { Breadcrumb } from "./Breadcrumb";
 import { ConsolePanel } from "./ConsolePanel";
@@ -253,6 +254,25 @@ function App() {
     });
   }, []);
 
+  // Deep linking callback (e.g. OAuth)
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    onOpenUrl((urls) => {
+      for (const url of urls) {
+        if (url.startsWith("spectra://oauth/callback")) {
+          api.finishOAuthFlow(url).catch((err) => {
+            console.error("OAuth flow failed:", err);
+          });
+        }
+      }
+    }).then((un) => {
+      unlisten = un;
+    });
+    return () => {
+      if (unlisten) unlisten();
+    };
+  }, []);
+
   useEffect(() => {
     if (activeWorkspace) {
       refreshRequests(activeWorkspace.id);
@@ -278,8 +298,9 @@ function App() {
     const unlistenPromise = listen<{
       request_id: string;
       environment_id?: string | null;
+      force_send?: boolean;
     }>("automation://prepare-request", async (event) => {
-      const { request_id, environment_id } = event.payload;
+      const { request_id, environment_id, force_send } = event.payload;
       let workspaceId: string | null = null;
       let name: string | null = null;
       let url: string | null = null;
@@ -320,7 +341,7 @@ function App() {
         // send it now, exactly like the Send button does.
         const existingTab = tabsRef.current.find((t) => t.tabId === tabId);
         const needsSend =
-          !existingTab || (!existingTab.response && !existingTab.error);
+          force_send || !existingTab || (!existingTab.response && !existingTab.error);
 
         let sendError: string | null = null;
         if (needsSend) {
