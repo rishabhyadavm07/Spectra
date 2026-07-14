@@ -40,7 +40,8 @@ pub fn export(req: &Request) -> String {
         | AuthConfig::OAuth2 { .. }
         | AuthConfig::AwsSigV4 { .. }
         | AuthConfig::Digest { .. }
-        | AuthConfig::Hawk { .. } => {}
+        | AuthConfig::Hawk { .. }
+        | AuthConfig::SavedAuth { .. } => {}
     }
 
     match &req.body {

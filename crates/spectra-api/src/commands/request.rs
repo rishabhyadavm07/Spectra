@@ -174,26 +174,38 @@ pub async fn save_request(ctx: &AppContext, id: String) -> ApiResult<Request> {
 /// exporters never see `InheritFromParent` themselves (see the comments on
 /// their `AuthConfig` match arms).
 pub async fn resolve_effective_auth(ctx: &AppContext, req: &Request) -> ApiResult<AuthConfig> {
-    if req.auth != AuthConfig::InheritFromParent {
-        return Ok(req.auth.clone());
-    }
+    let mut auth = req.auth.clone();
 
-    if let Some(folder_id) = &req.folder_id {
-        let mut current = folder_id.clone();
-        loop {
-            let folder = ctx.storage.get_folder(&req.workspace_id, &current).await?;
-            if folder.auth != AuthConfig::InheritFromParent {
-                return Ok(folder.auth);
+    if auth == AuthConfig::InheritFromParent {
+        if let Some(folder_id) = &req.folder_id {
+            let mut current = folder_id.clone();
+            loop {
+                let folder = ctx.storage.get_folder(&req.workspace_id, &current).await?;
+                if folder.auth != AuthConfig::InheritFromParent {
+                    auth = folder.auth;
+                    break;
+                }
+                match folder.parent_folder_id {
+                    Some(pid) => current = pid,
+                    None => break,
+                }
             }
-            match folder.parent_folder_id {
-                Some(pid) => current = pid,
-                None => break,
-            }
+        }
+
+        if auth == AuthConfig::InheritFromParent {
+            let ws = ctx.storage.get_workspace(&req.workspace_id).await?;
+            auth = ws.auth;
         }
     }
 
-    let ws = ctx.storage.get_workspace(&req.workspace_id).await?;
-    Ok(ws.auth)
+    if let AuthConfig::SavedAuth { saved_auth_id } = auth {
+        return match ctx.storage.get_saved_auth(&req.workspace_id, &saved_auth_id).await {
+            Ok(saved) => Ok(saved.auth),
+            Err(_) => Ok(AuthConfig::None),
+        };
+    }
+
+    Ok(auth)
 }
 
 /// Returns a copy of `req` with its `auth` field replaced by the resolved

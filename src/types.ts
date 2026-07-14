@@ -9,6 +9,14 @@ export interface Workspace {
   created_at: string;
 }
 
+export interface WorkspaceSavedAuth {
+  id: string;
+  workspace_id: string;
+  name: string;
+  auth: AuthConfig;
+  created_at: string;
+}
+
 export interface HeaderEntry {
   key: string;
   value: string;
@@ -171,7 +179,8 @@ export type AuthConfig =
       session_token: string | null;
     }
   | { type: "Digest"; username: string; password: string }
-  | { type: "Hawk"; id: string; key: string; algorithm: HawkAlgorithm };
+  | { type: "Hawk"; id: string; key: string; algorithm: HawkAlgorithm }
+  | { type: "SavedAuth"; saved_auth_id: string };
 
 export interface OAuthToken {
   access_token: string;

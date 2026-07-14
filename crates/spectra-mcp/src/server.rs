@@ -358,6 +358,7 @@ pub struct SendAndScreenshotParams {
     pub save_path: String,
     pub environment_id: Option<String>,
     /// If set, truncate the response body in the returned JSON.
+    #[allow(dead_code)]
     pub max_body_bytes: Option<usize>,
 }
 
@@ -807,7 +808,7 @@ impl SpectraServer {
         description = "Start an interactive OAuth2 flow (Authorization Code, Authorization Code + PKCE, or Device Code) for a request already configured with that grant type. Opens the system browser or returns a device code to show the user. Non-interactive grants (Client Credentials/Password/Refresh Token) don't need this — just call send_request."
     )]
     async fn start_oauth_flow(&self, params: Parameters<RequestIdOnlyParams>) -> Result<String, String> {
-        map_err(oauth::start_oauth_flow(&self.ctx, params.0.request_id).await)
+        map_err(oauth::start_oauth_flow(&self.ctx, params.0.request_id, None).await)
     }
 
     #[tool(description = "Poll the status of an in-progress OAuth2 flow for a request.")]

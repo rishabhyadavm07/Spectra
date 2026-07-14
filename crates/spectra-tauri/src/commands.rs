@@ -5,14 +5,14 @@
 //! on `crate::automation` for why.
 
 use crate::automation::{AutomationState, TabReadyReport};
-use spectra_api::commands::{environment, export, folder, history, import, oauth, request, saved_response, workspace, settings};
+use spectra_api::commands::{environment, export, folder, history, import, oauth, request, saved_response, workspace, settings, saved_auth};
 use spectra_api::dto::{
     CreateRequestInput, CreateWorkspaceInput, EnvironmentOutput, OrphanedSecret, SendRequestInput, SetAuthInput,
     SetBodyInput, SetHeadersInput, SetParamsInput, VariableInput,
 };
 use spectra_core::model::{
     AuthConfig, Folder, HistoryEntry, HttpMethod, NamedOAuthToken, OAuthStatus, PendingUserAction, Request,
-    RequestRun, RequestSummary, ResponseDto, SavedResponse, Workspace,
+    RequestRun, RequestSummary, ResponseDto, SavedResponse, Workspace, WorkspaceSavedAuth,
 };
 use spectra_core::AppContext;
 use std::collections::HashMap;
@@ -170,8 +170,8 @@ pub async fn clear_cookies(ctx: State<'_, AppContext>) -> CmdResult<()> {
 }
 
 #[tauri::command]
-pub async fn start_oauth_flow(ctx: State<'_, AppContext>, request_id: String) -> CmdResult<PendingUserAction> {
-    map_err(oauth::start_oauth_flow(&ctx, request_id).await)
+pub async fn start_oauth_flow(ctx: State<'_, AppContext>, request_id: String, token_name: Option<String>) -> CmdResult<PendingUserAction> {
+    map_err(oauth::start_oauth_flow(&ctx, request_id, token_name).await)
 }
 
 #[tauri::command]
@@ -211,6 +211,11 @@ pub async fn select_oauth_token(ctx: State<'_, AppContext>, request_id: String, 
 #[tauri::command]
 pub async fn delete_oauth_token(ctx: State<'_, AppContext>, request_id: String, name: String) -> CmdResult<()> {
     map_err(oauth::delete_oauth_token(&ctx, request_id, name).await)
+}
+
+#[tauri::command]
+pub async fn refresh_oauth_token(ctx: State<'_, AppContext>, request_id: String) -> CmdResult<NamedOAuthToken> {
+    map_err(oauth::refresh_oauth_token(&ctx, request_id).await)
 }
 
 #[tauri::command]
@@ -365,6 +370,26 @@ pub async fn save_response(
 #[tauri::command]
 pub async fn delete_saved_response(ctx: State<'_, AppContext>, workspace_id: String, id: String) -> CmdResult<()> {
     map_err(saved_response::delete_saved_response(&ctx, workspace_id, id).await)
+}
+
+#[tauri::command]
+pub async fn list_saved_auths(ctx: State<'_, AppContext>, workspace_id: String) -> CmdResult<Vec<WorkspaceSavedAuth>> {
+    map_err(saved_auth::list_saved_auths(&ctx, workspace_id).await)
+}
+
+#[tauri::command]
+pub async fn get_saved_auth(ctx: State<'_, AppContext>, workspace_id: String, id: String) -> CmdResult<WorkspaceSavedAuth> {
+    map_err(saved_auth::get_saved_auth(&ctx, workspace_id, id).await)
+}
+
+#[tauri::command]
+pub async fn save_saved_auth(ctx: State<'_, AppContext>, auth: WorkspaceSavedAuth) -> CmdResult<()> {
+    map_err(saved_auth::save_saved_auth(&ctx, auth).await)
+}
+
+#[tauri::command]
+pub async fn delete_saved_auth(ctx: State<'_, AppContext>, workspace_id: String, id: String) -> CmdResult<()> {
+    map_err(saved_auth::delete_saved_auth(&ctx, workspace_id, id).await)
 }
 
 #[tauri::command]

@@ -22,6 +22,15 @@ pub struct Workspace {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema)]
+pub struct WorkspaceSavedAuth {
+    pub id: Id,
+    pub workspace_id: Id,
+    pub name: String,
+    pub auth: AuthConfig,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum HttpMethod {
@@ -111,6 +120,7 @@ pub enum AuthConfig {
     },
     Digest { username: String, password: String },
     Hawk { id: String, key: String, algorithm: HawkAlgorithm },
+    SavedAuth { saved_auth_id: String },
 }
 
 impl Default for AuthConfig {

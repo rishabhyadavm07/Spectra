@@ -214,7 +214,8 @@ export function OAuth2Panel({
     setFlowBusy(true);
     setOauthStatus(null);
     try {
-      await api.startOAuthFlow(requestId);
+      await api.startOAuthFlow(requestId, tokenName.trim() || undefined);
+      setTokenName("");
       pollRef.current = window.setInterval(async () => {
         const status = await api.getOAuthStatus(requestId);
         setOauthStatus(status);
@@ -252,6 +253,19 @@ export function OAuth2Panel({
   async function handleDeleteToken(name: string) {
     await api.deleteOAuthToken(requestId, name);
     await refreshTokens();
+  }
+
+  async function handleManualRefresh() {
+    setFlowBusy(true);
+    setOauthStatus(null);
+    try {
+      await api.refreshOAuthToken(requestId);
+      await refreshTokens();
+    } catch (e) {
+      setOauthStatus({ status: "Failed", error: String(e) });
+    } finally {
+      setFlowBusy(false);
+    }
   }
 
   return (
@@ -347,6 +361,16 @@ export function OAuth2Panel({
                   <p className="hint-text">
                     {formatExpiry(currentToken.token.expires_at)}
                   </p>
+                )}
+                {currentToken.token.refresh_token && (
+                  <button
+                    type="button"
+                    onClick={handleManualRefresh}
+                    disabled={flowBusy}
+                    style={{ marginTop: "0.5em" }}
+                  >
+                    Refresh Access Token
+                  </button>
                 )}
               </div>
             </>

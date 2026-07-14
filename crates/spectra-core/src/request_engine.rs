@@ -236,7 +236,7 @@ fn resolve_auth_sync(auth: &AuthConfig, vars: &HashMap<String, String>) -> Resol
             ResolvedAuth::Hawk { id: resolve_string(id, vars), key: resolve_string(key, vars), algorithm: *algorithm }
         }
         // Digest and OAuth2 are handled by their callers before reaching here.
-        AuthConfig::Digest { .. } | AuthConfig::OAuth2 { .. } => ResolvedAuth::None,
+        AuthConfig::Digest { .. } | AuthConfig::OAuth2 { .. } | AuthConfig::SavedAuth { .. } => ResolvedAuth::None,
     }
 }
 
@@ -372,7 +372,7 @@ async fn resolve_auth(
     match auth {
         // See the comment on the same arm in resolve_auth_sync — inheritance
         // is resolved by the command layer before this is ever called.
-        AuthConfig::None | AuthConfig::InheritFromParent => Ok(ResolvedAuth::None),
+        AuthConfig::None | AuthConfig::InheritFromParent | AuthConfig::SavedAuth { .. } => Ok(ResolvedAuth::None),
         AuthConfig::Basic { username, password } => Ok(ResolvedAuth::Basic {
             username: resolve_string(username, vars),
             password: resolve_string(password, vars),
