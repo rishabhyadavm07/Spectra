@@ -1,5 +1,5 @@
 use crate::error::{ApiError, ApiResult};
-use crate::model::{Environment, Folder, HistoryEntry, Id, Request, SavedResponse, Workspace};
+use crate::model::{Environment, Folder, HistoryEntry, Request, SavedResponse, Workspace};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::{SqlitePool, Row};
 use std::path::PathBuf;

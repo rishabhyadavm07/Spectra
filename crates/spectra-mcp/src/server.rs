@@ -358,6 +358,7 @@ pub struct SendAndScreenshotParams {
     pub save_path: String,
     pub environment_id: Option<String>,
     /// If set, truncate the response body in the returned JSON.
+    #[allow(dead_code)]
     pub max_body_bytes: Option<usize>,
 }
 

@@ -4578,7 +4578,7 @@ dependencies = [
 
 [[package]]
 name = "spectra-api"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "chrono",
  "schemars 1.2.1",
@@ -4589,7 +4589,7 @@ dependencies = [
 
 [[package]]
 name = "spectra-app"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "reqwest 0.12.28",
  "serde",
@@ -4606,7 +4606,7 @@ dependencies = [
 
 [[package]]
 name = "spectra-core"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4633,7 +4633,7 @@ dependencies = [
 
 [[package]]
 name = "spectra-mcp"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "chrono",
