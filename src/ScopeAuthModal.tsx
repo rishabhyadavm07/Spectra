@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "./api";
 import type {
   AuthConfig,
   HawkAlgorithm,
@@ -19,6 +20,7 @@ const AUTH_TYPES: { value: AuthConfig["type"]; label: string }[] = [
   { value: "AwsSigV4", label: "AWS Signature V4" },
   { value: "Digest", label: "Digest Auth" },
   { value: "Hawk", label: "Hawk" },
+  { value: "SavedAuth", label: "Workspace Saved Auth" },
 ];
 
 const OAUTH2_SCOPE_GRANTS: {
@@ -65,6 +67,8 @@ function defaultAuth(type: AuthConfig["type"]): AuthConfig {
       return { type, username: "", password: "" };
     case "Hawk":
       return { type, id: "", key: "", algorithm: "SHA256" };
+    case "SavedAuth":
+      return { type, saved_auth_id: "" };
     default:
       return { type: type as "None" | "InheritFromParent" };
   }
@@ -74,6 +78,7 @@ interface Props {
   /** "Workspace" doesn't offer "Inherit from parent" — it's the top of the
    * chain, so that option is filtered out for it. */
   scope: "workspace" | "folder";
+  workspaceId: string;
   scopeName: string;
   initialAuth: AuthConfig;
   onSave: (auth: AuthConfig) => Promise<void>;
@@ -87,6 +92,7 @@ interface Props {
  */
 export function ScopeAuthModal({
   scope,
+  workspaceId,
   scopeName,
   initialAuth,
   onSave,
@@ -94,6 +100,39 @@ export function ScopeAuthModal({
 }: Props) {
   const [auth, setAuth] = useState<AuthConfig>(initialAuth);
   const [saving, setSaving] = useState(false);
+  const [savedAuths, setSavedAuths] = useState<{ id: string; name: string }[]>([]);
+  const [saveName, setSaveName] = useState("");
+  const [isSavingAuth, setIsSavingAuth] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.listSavedAuths(workspaceId).then(auths => {
+      if (!cancelled) setSavedAuths(auths.map(a => ({ id: a.id, name: a.name })));
+    }).catch(console.error);
+    return () => { cancelled = true; };
+  }, [workspaceId]);
+
+  async function handleSaveToWorkspace() {
+    if (!saveName.trim()) return;
+    setIsSavingAuth(true);
+    try {
+      const id = crypto.randomUUID();
+      await api.saveSavedAuth({
+        id,
+        workspace_id: workspaceId,
+        name: saveName.trim(),
+        auth,
+        created_at: new Date().toISOString()
+      });
+      setSaveName("");
+      const auths = await api.listSavedAuths(workspaceId);
+      setSavedAuths(auths.map(a => ({ id: a.id, name: a.name })));
+    } catch (e) {
+      console.error("Failed to save auth:", e);
+    } finally {
+      setIsSavingAuth(false);
+    }
+  }
 
   const authTypes =
     scope === "workspace"
@@ -151,6 +190,40 @@ export function ScopeAuthModal({
               ))}
             </select>
           </div>
+
+          {auth.type !== "InheritFromParent" && auth.type !== "None" && auth.type !== "SavedAuth" && (
+            <div className="oauth2-field" style={{ marginTop: "1em", marginBottom: "1em" }}>
+              <div style={{ display: "flex", gap: "0.5em" }}>
+                <input 
+                  placeholder="Custom Name" 
+                  value={saveName} 
+                  onChange={e => setSaveName(e.target.value)} 
+                />
+                <button 
+                  type="button" 
+                  onClick={handleSaveToWorkspace} 
+                  disabled={isSavingAuth || !saveName.trim()}
+                >
+                  Save to Workspace
+                </button>
+              </div>
+            </div>
+          )}
+
+          {auth.type === "SavedAuth" && (
+            <div className="oauth2-field">
+              <label>Select Saved Auth</label>
+              <select 
+                value={auth.saved_auth_id}
+                onChange={(e) => field("saved_auth_id", e.target.value)}
+              >
+                <option value="" disabled>-- Select a saved auth --</option>
+                {savedAuths.map(sa => (
+                  <option key={sa.id} value={sa.id}>{sa.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {auth.type === "Basic" && (
             <div className="oauth2-panel">

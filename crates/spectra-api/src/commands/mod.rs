@@ -8,3 +8,4 @@ pub mod request;
 pub mod saved_response;
 pub mod workspace;
 pub mod settings;
+pub mod saved_auth;

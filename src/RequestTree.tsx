@@ -472,6 +472,7 @@ export function RequestTree({
       {editingFolderAuth && (
         <ScopeAuthModal
           scope="folder"
+          workspaceId={workspaceId}
           scopeName={editingFolderAuth.name}
           initialAuth={editingFolderAuth.auth}
           onSave={async (auth) => onSetFolderAuth(editingFolderAuth.id, auth)}

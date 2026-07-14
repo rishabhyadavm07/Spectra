@@ -10,11 +10,7 @@ interface Props {
    * offer a "This Request" scope showing just its last 5 sends. `null` when
    * no tab is open (the toggle still renders but "This Request" is disabled). */
   activeRequestId: string | null;
-  onReplay: (
-    entry: HistoryEntry,
-    response: HistoryEntry["response"],
-    error: string | null,
-  ) => void;
+  onView: (entry: HistoryEntry) => void;
   onConvertedToRequest: () => void;
   refreshSignal: number;
 }
@@ -35,7 +31,7 @@ function timeAgo(iso: string): string {
 export function HistoryPanel({
   workspaceId,
   activeRequestId,
-  onReplay,
+  onView,
   onConvertedToRequest,
   refreshSignal,
 }: Props) {
@@ -46,8 +42,6 @@ export function HistoryPanel({
     activeRequestId ? "request" : "all",
   );
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
-  const [busyId, setBusyId] = useState<string | null>(null);
-
   const scrollParentRef = useRef<HTMLDivElement>(null);
 
   const rowVirtualizer = useVirtualizer({
@@ -77,17 +71,8 @@ export function HistoryPanel({
     }
   }
 
-  async function handleReplay(entry: HistoryEntry) {
-    setBusyId(entry.id);
-    try {
-      const run = await api.replayHistoryEntry(workspaceId, entry.id);
-      onReplay(entry, run.response, null);
-    } catch (e) {
-      onReplay(entry, null, String(e));
-    } finally {
-      setBusyId(null);
-      refresh();
-    }
+  function handleView(entry: HistoryEntry) {
+    onView(entry);
   }
 
   async function handleDelete(id: string) {
@@ -165,7 +150,7 @@ export function HistoryPanel({
                 >
                   <div
                     className="history-row-main"
-                    onClick={() => handleReplay(entry)}
+                    onClick={() => handleView(entry)}
                   >
                     <span
                       className={`method-badge method-${entry.request_snapshot.method}`}
@@ -192,7 +177,6 @@ export function HistoryPanel({
                         )}
                         {" · "}
                         {timeAgo(entry.executed_at)}
-                        {busyId === entry.id && " · replaying…"}
                       </span>
                     </div>
                   </div>

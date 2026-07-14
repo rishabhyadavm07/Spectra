@@ -45,7 +45,6 @@ import type {
   HttpMethod,
   ParamEntry,
   RequestBody,
-  ResponseDto,
   SavedResponse,
   SpectraRequest,
   TabState,
@@ -1007,15 +1006,11 @@ function App() {
     setSavedResponsesRefreshSignal((n) => n + 1);
   }
 
-  function handleHistoryReplay(
-    entry: HistoryEntry,
-    replayResponse: ResponseDto | null,
-    replayError: string | null,
-  ) {
+  function handleHistoryView(entry: HistoryEntry) {
     const tabId = openTabForRequest(entry.request_snapshot);
     updateTab(tabId, {
-      response: replayResponse,
-      error: replayError,
+      response: entry.response,
+      error: entry.error,
       savedResponseName: null,
     });
   }
@@ -1257,7 +1252,7 @@ function App() {
                   <HistoryPanel
                     workspaceId={activeWorkspace.id}
                     activeRequestId={activeTab?.request.id ?? null}
-                    onReplay={handleHistoryReplay}
+                    onView={handleHistoryView}
                     onConvertedToRequest={handleHistoryConverted}
                     refreshSignal={historyRefreshSignal}
                   />
@@ -1427,6 +1422,7 @@ function App() {
                     onAuthCommit={commitAuth}
                     onNotesChange={handleNotesChange}
                     onNotesCommit={commitNotes}
+                    onViewHistory={handleHistoryView}
                   />
                 </div>
 

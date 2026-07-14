@@ -100,6 +100,14 @@ impl Storage {
             saved_at DATETIME NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS workspace_saved_auths (
+            id TEXT PRIMARY KEY,
+            workspace_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            auth_json TEXT NOT NULL,
+            created_at DATETIME NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS settings (
             id INTEGER PRIMARY KEY CHECK (id = 1),
             theme TEXT NOT NULL,
@@ -517,6 +525,15 @@ impl Storage {
             .execute(&self.pool)
             .await
             .map_err(|e| ApiError::IoError(e.to_string()))?;
+
+        sqlx::query("DELETE FROM history WHERE workspace_id = ? AND request_id = ? AND id NOT IN (SELECT id FROM history WHERE workspace_id = ? AND request_id = ? ORDER BY executed_at DESC LIMIT 5)")
+            .bind(&entry.workspace_id)
+            .bind(&entry.request_id)
+            .bind(&entry.workspace_id)
+            .bind(&entry.request_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ApiError::IoError(e.to_string()))?;
         
         Ok(())
     }
@@ -594,6 +611,73 @@ impl Storage {
 
     pub async fn delete_saved_response(&self, workspace_id: &str, id: &str) -> ApiResult<()> {
         sqlx::query("DELETE FROM saved_responses WHERE id = ? AND workspace_id = ?")
+            .bind(id)
+            .bind(workspace_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ApiError::IoError(e.to_string()))?;
+        Ok(())
+    }
+
+    // --- Workspace Saved Auths ---
+
+    pub async fn list_saved_auths(&self, workspace_id: &str) -> ApiResult<Vec<crate::model::WorkspaceSavedAuth>> {
+        let rows = sqlx::query("SELECT id, name, auth_json, created_at FROM workspace_saved_auths WHERE workspace_id = ? ORDER BY created_at ASC")
+            .bind(workspace_id)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| ApiError::IoError(e.to_string()))?;
+
+        let mut auths = Vec::new();
+        for row in rows {
+            auths.push(crate::model::WorkspaceSavedAuth {
+                id: row.get("id"),
+                workspace_id: workspace_id.to_string(),
+                name: row.get("name"),
+                auth: serde_json::from_str(&row.get::<String, _>("auth_json")).unwrap(),
+                created_at: chrono::DateTime::from_str(&row.get::<String, _>("created_at")).unwrap_or_default(),
+            });
+        }
+        Ok(auths)
+    }
+
+    pub async fn get_saved_auth(&self, workspace_id: &str, id: &str) -> ApiResult<crate::model::WorkspaceSavedAuth> {
+        let row = sqlx::query("SELECT name, auth_json, created_at FROM workspace_saved_auths WHERE id = ? AND workspace_id = ?")
+            .bind(id)
+            .bind(workspace_id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| ApiError::IoError(e.to_string()))?
+            .ok_or_else(|| ApiError::NotFound { entity: "workspace_saved_auth", id: id.to_string() })?;
+
+        Ok(crate::model::WorkspaceSavedAuth {
+            id: id.to_string(),
+            workspace_id: workspace_id.to_string(),
+            name: row.get("name"),
+            auth: serde_json::from_str(&row.get::<String, _>("auth_json")).unwrap(),
+            created_at: chrono::DateTime::from_str(&row.get::<String, _>("created_at")).unwrap_or_default(),
+        })
+    }
+
+    pub async fn save_saved_auth(&self, auth: &crate::model::WorkspaceSavedAuth) -> ApiResult<()> {
+        let auth_json = serde_json::to_string(&auth.auth).unwrap_or_default();
+        let created_at = auth.created_at.to_rfc3339();
+
+        sqlx::query("INSERT INTO workspace_saved_auths (id, workspace_id, name, auth_json, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET name=excluded.name, auth_json=excluded.auth_json")
+            .bind(&auth.id)
+            .bind(&auth.workspace_id)
+            .bind(&auth.name)
+            .bind(&auth_json)
+            .bind(&created_at)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| ApiError::IoError(e.to_string()))?;
+        
+        Ok(())
+    }
+
+    pub async fn delete_saved_auth(&self, workspace_id: &str, id: &str) -> ApiResult<()> {
+        sqlx::query("DELETE FROM workspace_saved_auths WHERE id = ? AND workspace_id = ?")
             .bind(id)
             .bind(workspace_id)
             .execute(&self.pool)

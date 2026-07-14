@@ -18,6 +18,7 @@ pub(crate) struct PendingExchange {
     pub client_secret: Option<String>,
     pub code_verifier: Option<String>,
     pub options: OAuth2Options,
+    pub token_name: Option<String>,
 }
 
 /// Per-request named-token state: every token fetched for this request so
@@ -186,6 +187,7 @@ pub async fn start_flow(
     store: Arc<OAuthStore>,
     request_id: String,
     grant: OAuth2Grant,
+    token_name: Option<String>,
 ) -> ApiResult<PendingUserAction> {
     match grant.clone() {
         OAuth2Grant::AuthorizationCode { client_id, client_secret, auth_url, token_url, redirect_uri, scope, options } => {
@@ -215,6 +217,7 @@ pub async fn start_flow(
                     client_secret,
                     code_verifier: None,
                     options,
+                    token_name: token_name.clone(),
                 }).await;
             } else {
                 let handle = tokio::spawn(run_loopback_and_exchange(
@@ -228,6 +231,7 @@ pub async fn start_flow(
                     client_secret,
                     None,
                     options,
+                    token_name,
                 ));
                 store.register_task(request_id, handle).await;
             }
@@ -264,6 +268,7 @@ pub async fn start_flow(
                     client_secret: None,
                     code_verifier: Some(verifier),
                     options,
+                    token_name: token_name.clone(),
                 }).await;
             } else {
                 let handle = tokio::spawn(run_loopback_and_exchange(
@@ -277,6 +282,7 @@ pub async fn start_flow(
                     None,
                     Some(verifier),
                     options,
+                    token_name,
                 ));
                 store.register_task(request_id, handle).await;
             }
@@ -310,7 +316,7 @@ pub async fn start_flow(
                 )
                 .await;
                 match result {
-                    Ok(token) => store.save_token(&request_id, None, token).await,
+                    Ok(token) => store.save_token(&request_id, token_name, token).await,
                     Err(e) => store.set(&request_id, OAuthStatus::Failed { error: e.to_string() }).await,
                 }
             });
@@ -364,7 +370,7 @@ pub async fn finish_flow_from_url(
 
     match result {
         Ok(token) => {
-            store.save_token(&pending.request_id, None, token).await;
+            store.save_token(&pending.request_id, pending.token_name, token).await;
             Ok(())
         }
         Err(e) => {
@@ -386,6 +392,7 @@ async fn run_loopback_and_exchange(
     client_secret: Option<String>,
     code_verifier: Option<String>,
     options: OAuth2Options,
+    token_name: Option<String>,
 ) {
     let result = catch_callback_and_exchange(
         &http,
@@ -400,7 +407,7 @@ async fn run_loopback_and_exchange(
     .await;
 
     match result {
-        Ok(token) => store.save_token(&request_id, None, token).await,
+        Ok(token) => store.save_token(&request_id, token_name, token).await,
         Err(e) => store.set(&request_id, OAuthStatus::Failed { error: e.to_string() }).await,
     }
 }

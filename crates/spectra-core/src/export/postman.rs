@@ -141,7 +141,8 @@ fn auth_json(auth: &AuthConfig) -> Option<Value> {
         | AuthConfig::OAuth2 { .. }
         | AuthConfig::AwsSigV4 { .. }
         | AuthConfig::Digest { .. }
-        | AuthConfig::Hawk { .. } => None,
+        | AuthConfig::Hawk { .. }
+        | AuthConfig::SavedAuth { .. } => None,
     }
 }
 

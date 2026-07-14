@@ -21,6 +21,7 @@ import type {
   SpectraRequest,
   VariableInput,
   Workspace,
+  WorkspaceSavedAuth,
   AppSettings,
 } from "./types";
 
@@ -83,8 +84,8 @@ export const api = {
     }),
   clearCookies: () => invoke<void>("clear_cookies", {}),
 
-  startOAuthFlow: (requestId: string) =>
-    invoke<PendingUserAction>("start_oauth_flow", { requestId }),
+  startOAuthFlow: (requestId: string, tokenName?: string) =>
+    invoke<PendingUserAction>("start_oauth_flow", { requestId, tokenName: tokenName ?? null }),
   finishOAuthFlow: (url: string) =>
     invoke<void>("finish_oauth_flow", { url }),
   getOAuthStatus: (requestId: string) =>
@@ -96,6 +97,8 @@ export const api = {
       requestId,
       name: name ?? null,
     }),
+  refreshOAuthToken: (requestId: string) =>
+    invoke<NamedOAuthToken>("refresh_oauth_token", { requestId }),
   listOAuthTokens: (requestId: string) =>
     invoke<NamedOAuthToken[]>("list_oauth_tokens", { requestId }),
   selectOAuthToken: (requestId: string, name: string) =>
@@ -188,6 +191,15 @@ export const api = {
     }),
   deleteSavedResponse: (workspaceId: string, id: string) =>
     invoke<void>("delete_saved_response", { workspaceId, id }),
+
+  listSavedAuths: (workspaceId: string) =>
+    invoke<WorkspaceSavedAuth[]>("list_saved_auths", { workspaceId }),
+  getSavedAuth: (workspaceId: string, id: string) =>
+    invoke<WorkspaceSavedAuth>("get_saved_auth", { workspaceId, id }),
+  saveSavedAuth: (auth: WorkspaceSavedAuth) =>
+    invoke<void>("save_saved_auth", { auth }),
+  deleteSavedAuth: (workspaceId: string, id: string) =>
+    invoke<void>("delete_saved_auth", { workspaceId, id }),
 
   importCollection: (
     workspaceId: string,

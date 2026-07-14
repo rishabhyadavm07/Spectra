@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { api } from "./api";
 import { AuthPanel } from "./AuthPanel";
 import type {
   AuthConfig,
@@ -6,12 +7,13 @@ import type {
   ParamEntry,
   RequestBody,
   SpectraRequest,
+  HistoryEntry,
 } from "./types";
 import { VarInput } from "./VarInput";
 import { VarTextarea } from "./VarTextarea";
 import { Plus } from "lucide-react";
 
-type Tab = "params" | "headers" | "auth" | "body" | "notes";
+type Tab = "params" | "headers" | "auth" | "body" | "notes" | "history";
 
 const MAX_NOTES_WORDS = 50;
 
@@ -76,6 +78,7 @@ interface Props {
   onAuthCommit: (auth: AuthConfig) => void;
   onNotesChange: (notes: string) => void;
   onNotesCommit: (notes: string) => void;
+  onViewHistory: (entry: HistoryEntry) => void;
 }
 
 export function RequestTabs({
@@ -92,8 +95,16 @@ export function RequestTabs({
   onAuthCommit,
   onNotesChange,
   onNotesCommit,
+  onViewHistory,
 }: Props) {
   const [tab, setTab] = useState<Tab>("params");
+  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
+
+  useEffect(() => {
+    if (tab === "history") {
+      api.listHistoryForRequest(request.workspace_id, request.id).then(setHistoryEntries);
+    }
+  }, [tab, request.workspace_id, request.id]);
 
   const visibleAutoHeaders = autoHeaders.filter(
     ([key]) =>
@@ -174,6 +185,12 @@ export function RequestTabs({
         >
           Notes
           {request.notes.trim() !== "" && <span className="tab-count">•</span>}
+        </button>
+        <button
+          className={tab === "history" ? "tab active" : "tab"}
+          onClick={() => setTab("history")}
+        >
+          History
         </button>
       </div>
 
@@ -276,6 +293,7 @@ export function RequestTabs({
           <div className="tab-pane">
             <AuthPanel
               requestId={request.id}
+              workspaceId={request.workspace_id}
               auth={request.auth}
               onChange={onAuthChange}
               onCommit={onAuthCommit}
@@ -388,15 +406,45 @@ export function RequestTabs({
               }
               onBlur={() => onNotesCommit(request.notes)}
             />
-            <div
-              className={
-                countWords(request.notes) >= MAX_NOTES_WORDS
-                  ? "notes-word-count notes-word-count-limit"
-                  : "notes-word-count"
-              }
-            >
-              {countWords(request.notes)}/{MAX_NOTES_WORDS} words
+            <div className="notes-footer">
+              <span className="notes-count">
+                {countWords(request.notes)} / {MAX_NOTES_WORDS} words
+              </span>
             </div>
+          </div>
+        )}
+
+        {tab === "history" && (
+          <div className="tab-pane" style={{ padding: "0.5em 1em" }}>
+            {historyEntries.length === 0 ? (
+              <div className="empty-state">No history for this request yet.</div>
+            ) : (
+              <ul className="history-list" style={{ position: "relative", height: "auto" }}>
+                {historyEntries.map((entry) => (
+                  <li key={entry.id} className="history-row" style={{ position: "relative" }}>
+                    <div className="history-row-main" onClick={() => onViewHistory(entry)}>
+                      <span className={`method-badge method-${entry.request_snapshot.method}`}>
+                        {entry.request_snapshot.method}
+                      </span>
+                      <div className="history-row-info">
+                        <span className="history-url">{entry.request_snapshot.url}</span>
+                        <span className="history-meta">
+                          {entry.error ? (
+                            <span className="status-err">Failed</span>
+                          ) : (
+                            <span className={entry.response && entry.response.status < 400 ? "status-ok" : "status-err"}>
+                              {entry.response?.status}
+                            </span>
+                          )}
+                          {" · "}
+                          {new Date(entry.executed_at).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
       </div>

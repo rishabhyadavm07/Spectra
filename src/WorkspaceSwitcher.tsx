@@ -154,6 +154,7 @@ export function WorkspaceSwitcher({
       {editingAuthFor && (
         <ScopeAuthModal
           scope="workspace"
+          workspaceId={editingAuthFor.id}
           scopeName={editingAuthFor.name}
           initialAuth={editingAuthFor.auth}
           onSave={handleSaveAuth}
