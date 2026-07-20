@@ -28,7 +28,7 @@ target
 Thumbs.db
 
 # === Tauri sidecar binaries (built at compile time) ===
-**/crates/spectra-tauri/bin/
+crates/spectra-tauri/bin/
 
 # === Misc ===
-**/body.html
+body.html
