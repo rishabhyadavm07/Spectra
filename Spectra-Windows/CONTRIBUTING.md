@@ -1,6 +1,6 @@
 # Contributing to Spectra (Windows)
 
-Thank you for considering contributing to Spectra! This document covers the **Windows** project. If you're working on the macOS build, see [`Spectra/CONTRIBUTING.md`](../Spectra/CONTRIBUTING.md) instead — the two projects live in separate folders at the repo root and are versioned/released independently (`mac-v*` vs `win-v*` tags).
+Thank you for considering contributing to Spectra! This document covers the **Windows** project. If you're working on the macOS build, see [`Spectra/CONTRIBUTING.md`](../Spectra/CONTRIBUTING.md) instead — the two projects live in separate folders at the repo root and are versioned/released independently.
 
 ## Development Setup
 

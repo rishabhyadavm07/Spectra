@@ -60,7 +60,7 @@ This folder is the **Windows** project. The macOS build lives in [`../Spectra`](
 
 ### Download
 
-Grab the latest `.msi` or `.exe` installer from the [Releases](https://github.com/rishabhyadavm07/Spectra/releases) page (tagged `win-v*`).
+Grab the latest `.msi` or `.exe` installer from the [Releases](https://github.com/rishabhyadavm07/Spectra/releases) page.
 
 > **Note:** The installer is unsigned. Windows SmartScreen may show a warning on first launch — click **More info** → **Run anyway** to proceed.
 

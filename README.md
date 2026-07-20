@@ -21,19 +21,12 @@
 
 Spectra ships separately for macOS and Windows. Each platform has its own self-contained Tauri project, versioned and released independently:
 
-| Platform | Project folder | Release tags | Docs |
-|----------|----------------|--------------|------|
-| macOS | [`Spectra/`](Spectra) | `mac-v*` | [README](Spectra/README.md) · [CONTRIBUTING](Spectra/CONTRIBUTING.md) |
-| Windows | [`Spectra-Windows/`](Spectra-Windows) | `win-v*` | [README](Spectra-Windows/README.md) · [CONTRIBUTING](Spectra-Windows/CONTRIBUTING.md) |
+| Platform | Project folder | Docs |
+|----------|----------------|------|
+| macOS | [`Spectra/`](Spectra) | [README](Spectra/README.md) · [CONTRIBUTING](Spectra/CONTRIBUTING.md) |
+| Windows | [`Spectra-Windows/`](Spectra-Windows) | [README](Spectra-Windows/README.md) · [CONTRIBUTING](Spectra-Windows/CONTRIBUTING.md) |
 
 Pick your platform folder above for installation, build instructions, architecture, and MCP setup — the two READMEs cover the full feature set and are otherwise identical aside from platform-specific steps.
-
-## Releases
-
-Both platforms build via a single GitHub Actions workflow ([`.github/workflows/release.yml`](.github/workflows/release.yml)) gated by tag prefix:
-
-- Pushing a `mac-v*` tag builds and drafts a release from `Spectra/`
-- Pushing a `win-v*` tag builds and drafts a release from `Spectra-Windows/`
 
 ## License
 

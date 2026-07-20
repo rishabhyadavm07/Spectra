@@ -58,10 +58,10 @@
 
 Spectra is built separately per platform. The repo has one project folder per OS:
 
-| Platform | Project folder | Release tags |
-|----------|----------------|--------------|
-| macOS | [`Spectra/`](.) | `mac-v*` |
-| Windows | [`Spectra-Windows/`](../Spectra-Windows) | `win-v*` |
+| Platform | Project folder |
+|----------|----------------|
+| macOS | [`Spectra/`](.) |
+| Windows | [`Spectra-Windows/`](../Spectra-Windows) |
 
 ### Download
 
