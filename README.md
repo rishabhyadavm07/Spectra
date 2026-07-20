@@ -11,7 +11,7 @@
   [![MCP](https://img.shields.io/badge/MCP-Supported-8B5CF6?style=flat-square)](https://modelcontextprotocol.io)
   [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](#license)
 
-  🌐 **[fanaticalnerd.com/Spectra](https://fanaticalnerd.com/Spectra..html)**
+  🌐 **[fanaticalnerd.com/Spectra](https://fanaticalnerd.com/Spectra.html)**
 
 </div>
 
