@@ -1,21 +1,23 @@
-# Contributing to Spectra
+# Contributing to Spectra (Windows)
 
-Thank you for considering contributing to Spectra! This document provides guidelines to help you get started.
+Thank you for considering contributing to Spectra! This document covers the **Windows** project. If you're working on the macOS build, see [`Spectra/CONTRIBUTING.md`](../Spectra/CONTRIBUTING.md) instead — the two projects live in separate folders at the repo root and are versioned/released independently (`mac-v*` vs `win-v*` tags).
 
 ## Development Setup
 
 ### Prerequisites
 
 - **Node.js** ≥ 18
-- **Rust** ≥ 1.75 (with `cargo`)
-- **macOS** (primary development target)
+- **Rust** ≥ 1.75 (with `cargo`), `x86_64-pc-windows-msvc` target
+- **Microsoft C++ Build Tools** — "Desktop development with C++" workload, required for the MSVC linker
+- **WebView2** — preinstalled on most Windows 10/11 systems
+- **Windows** (primary development target for this folder)
 
 ### Getting Started
 
-```bash
+```powershell
 # Clone your fork
 git clone https://github.com/<your-username>/Spectra.git
-cd Spectra
+cd Spectra\spectra-app\Spectra-Windows
 
 # Install frontend dependencies
 npm install
@@ -84,7 +86,7 @@ test: add formatter edge case tests
 1. Fork the repo and create your branch from `main`
 2. If you've added code, add tests
 3. Ensure the test suite passes (`npx vitest run`)
-4. Ensure the app builds (`npm run build:mac`)
+4. Ensure the app builds (`npm run build:mac` — the script name is shared with the macOS project, but on Windows it produces a Windows build)
 5. Write a clear PR description explaining your changes
 
 ## Code Style
@@ -96,7 +98,7 @@ test: add formatter edge case tests
 ## Reporting Issues
 
 When filing an issue, please include:
-- macOS version
+- Windows version (e.g. Windows 11 23H2)
 - Steps to reproduce
 - Expected vs actual behavior
 - Console output (if applicable)

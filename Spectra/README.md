@@ -56,13 +56,22 @@
 
 ## 📦 Installation
 
-### Download (macOS Apple Silicon)
+Spectra is built separately per platform. The repo has one project folder per OS:
 
-Grab the latest `.dmg` from the [Releases](https://github.com/rishabhyadavm07/Spectra/releases) page.
+| Platform | Project folder | Release tags |
+|----------|----------------|--------------|
+| macOS | [`Spectra/`](.) | `mac-v*` |
+| Windows | [`Spectra-Windows/`](../Spectra-Windows) | `win-v*` |
 
-> **Note:** The app is ad-hoc signed. On first launch, right-click the app → **Open** to bypass Gatekeeper.
+### Download
 
-### Build from Source
+Grab the latest build for your platform from the [Releases](https://github.com/rishabhyadavm07/Spectra/releases) page — `.dmg` for macOS, `.msi`/`.exe` for Windows.
+
+> **Note (macOS):** The app is ad-hoc signed. On first launch, right-click the app → **Open** to bypass Gatekeeper.
+>
+> **Note (Windows):** SmartScreen may warn on first launch since the binary is unsigned — click **More info** → **Run anyway**.
+
+### Build from Source (macOS)
 
 #### Prerequisites
 
@@ -77,7 +86,7 @@ Grab the latest `.dmg` from the [Releases](https://github.com/rishabhyadavm07/Sp
 ```bash
 # 1. Clone the repository
 git clone https://github.com/rishabhyadavm07/Spectra.git
-cd Spectra
+cd Spectra/Spectra
 
 # 2. Install frontend dependencies
 npm install
@@ -94,6 +103,10 @@ The production build outputs:
 target/release/bundle/macos/Spectra.app
 target/release/bundle/dmg/Spectra_0.1.0_aarch64.dmg
 ```
+
+### Build from Source (Windows)
+
+See [`Spectra-Windows/README.md`](../Spectra-Windows/README.md) for Windows-specific prerequisites and build steps.
 
 ---
 
@@ -152,10 +165,18 @@ Add the following to your Claude Desktop config (`~/Library/Application Support/
 
 ## 🏗 Architecture
 
-Spectra is a **Tauri v2** application with a Rust backend and React frontend.
+Spectra is a **Tauri v2** application with a Rust backend and React frontend. The macOS and Windows builds live in separate, independently versioned project folders at the repo root:
 
 ```
 spectra-app/
+├── Spectra/                      # macOS project (this folder)
+└── Spectra-Windows/               # Windows project (mirrors this layout)
+```
+
+Each folder is a self-contained Tauri project with its own `package.json`, `Cargo.toml`, and lockfiles — treat them as separate builds, not a shared workspace. The layout inside each folder is identical:
+
+```
+Spectra/
 ├── src/                          # React frontend (TypeScript)
 │   ├── App.tsx                   # Main application shell
 │   ├── App.css                   # Design system + all styles

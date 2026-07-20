@@ -1,6 +1,6 @@
-# Contributing to Spectra
+# Contributing to Spectra (macOS)
 
-Thank you for considering contributing to Spectra! This document provides guidelines to help you get started.
+Thank you for considering contributing to Spectra! This document covers the **macOS** project. If you're working on the Windows build, see [`Spectra-Windows/CONTRIBUTING.md`](../Spectra-Windows/CONTRIBUTING.md) instead — the two projects live in separate folders at the repo root and are versioned/released independently (`mac-v*` vs `win-v*` tags).
 
 ## Development Setup
 
@@ -8,14 +8,14 @@ Thank you for considering contributing to Spectra! This document provides guidel
 
 - **Node.js** ≥ 18
 - **Rust** ≥ 1.75 (with `cargo`)
-- **macOS** (primary development target)
+- **macOS** (primary development target for this folder)
 
 ### Getting Started
 
 ```bash
 # Clone your fork
 git clone https://github.com/<your-username>/Spectra.git
-cd Spectra
+cd Spectra/spectra-app/Spectra
 
 # Install frontend dependencies
 npm install

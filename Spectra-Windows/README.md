@@ -30,7 +30,7 @@
 - **Request history** — Automatic logging with replay, search, and saved responses
 
 ### 🎨 Beautiful Interface
-- **Native macOS feel** — Overlay title bar, transparent window, system-native rendering
+- **Native Windows feel** — System-native window chrome and rendering
 - **Adaptive themes** — System (auto), Light, Dark, and **Crimson** themes
 - **Monaco Editor** — Full VS Code-grade syntax highlighting for request and response bodies
 - **Resizable panels** — Drag to resize sidebar, request/response split, and console
@@ -56,11 +56,13 @@
 
 ## 📦 Installation
 
-### Download (macOS Apple Silicon)
+This folder is the **Windows** project. The macOS build lives in [`../Spectra`](../Spectra) — see its [README](../Spectra/README.md) for macOS instructions.
 
-Grab the latest `.dmg` from the [Releases](https://github.com/rishabhyadavm07/Spectra/releases) page.
+### Download
 
-> **Note:** The app is ad-hoc signed. On first launch, right-click the app → **Open** to bypass Gatekeeper.
+Grab the latest `.msi` or `.exe` installer from the [Releases](https://github.com/rishabhyadavm07/Spectra/releases) page (tagged `win-v*`).
+
+> **Note:** The installer is unsigned. Windows SmartScreen may show a warning on first launch — click **More info** → **Run anyway** to proceed.
 
 ### Build from Source
 
@@ -69,15 +71,17 @@ Grab the latest `.dmg` from the [Releases](https://github.com/rishabhyadavm07/Sp
 | Tool | Version | Install |
 |------|---------|---------|
 | **Node.js** | ≥ 18 | [nodejs.org](https://nodejs.org) |
-| **Rust** | ≥ 1.75 | `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh` |
+| **Rust** | ≥ 1.75 (`x86_64-pc-windows-msvc` target) | [rustup.rs](https://rustup.rs) |
+| **Microsoft C++ Build Tools** | Latest | [Visual Studio Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) — required by Tauri's Windows linker (select the "Desktop development with C++" workload) |
+| **WebView2** | Latest | Preinstalled on Windows 11 / most Windows 10 systems; otherwise [download](https://developer.microsoft.com/microsoft-edge/webview2/) |
 | **Tauri CLI** | v2 | Included in `devDependencies` |
 
 #### Steps
 
-```bash
+```powershell
 # 1. Clone the repository
 git clone https://github.com/rishabhyadavm07/Spectra.git
-cd Spectra
+cd Spectra\spectra-app\Spectra-Windows
 
 # 2. Install frontend dependencies
 npm install
@@ -89,10 +93,12 @@ npm run tauri dev
 npm run build:mac
 ```
 
+> The `build:mac` script name is inherited from the shared `package.json` — it simply runs `tauri build`, and Tauri targets whatever OS it's run on, so on Windows this produces a Windows build.
+
 The production build outputs:
 ```
-target/release/bundle/macos/Spectra.app
-target/release/bundle/dmg/Spectra_0.1.0_aarch64.dmg
+target\release\bundle\msi\Spectra_0.1.2_x64_en-US.msi
+target\release\bundle\nsis\Spectra_0.1.2_x64-setup.exe
 ```
 
 ---
@@ -122,13 +128,13 @@ Spectra ships with a built-in [Model Context Protocol](https://modelcontextproto
 
 ### Setup with Claude Desktop
 
-Add the following to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+Add the following to your Claude Desktop config (`%APPDATA%\Claude\claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
     "spectra-mcp": {
-      "command": "/Applications/Spectra.app/Contents/Resources/bin/spectra-mcp",
+      "command": "C:\\Program Files\\Spectra\\resources\\bin\\spectra-mcp.exe",
       "args": []
     }
   }
@@ -152,10 +158,10 @@ Add the following to your Claude Desktop config (`~/Library/Application Support/
 
 ## 🏗 Architecture
 
-Spectra is a **Tauri v2** application with a Rust backend and React frontend.
+Spectra is a **Tauri v2** application with a Rust backend and React frontend. This folder is the Windows project; the macOS project at [`../Spectra`](../Spectra) mirrors the same layout and is built/versioned independently:
 
 ```
-spectra-app/
+Spectra-Windows/
 ├── src/                          # React frontend (TypeScript)
 │   ├── App.tsx                   # Main application shell
 │   ├── App.css                   # Design system + all styles
@@ -216,7 +222,7 @@ Spectra ships with four built-in themes:
 
 | Theme | Description |
 |-------|-------------|
-| **System** | Automatically follows your macOS appearance setting |
+| **System** | Automatically follows your Windows light/dark appearance setting |
 | **Light** | Clean, bright interface with white panels |
 | **Dark** | Modern dark interface with `#121212` backgrounds |
 | **Crimson** | Premium dark-red aesthetic with ruby accents |
@@ -232,7 +238,7 @@ Change your theme in **Settings** (⚙️) → **General** → **Theme**.
 | `npm run dev` | Start Vite dev server (frontend only) |
 | `npm run tauri dev` | Start full Tauri app with hot reload |
 | `npm run build` | Build frontend (sidecar + TypeScript + Vite) |
-| `npm run build:mac` | Build production `.app` and `.dmg` bundles |
+| `npm run build:mac` | Build production `.msi`/`.exe` bundles (name is shared with the macOS project; `tauri build` targets the host OS) |
 | `npx vitest run` | Run test suite |
 
 ---
@@ -252,7 +258,8 @@ Contributions are welcome! Here's how to get started:
 - The frontend hot-reloads instantly via Vite HMR when running `npm run tauri dev`
 - Rust changes require a recompile — Tauri handles this automatically
 - CSS variables in `:root`, `html.dark`, and `html.crimson` blocks control all theming
-- The MCP sidecar is a separate binary in `crates/spectra-mcp/`
+- The MCP sidecar is a separate binary in `crates/spectra-mcp/` (built as `spectra-mcp.exe` on Windows)
+- If the Rust build fails at the linking step, confirm the "Desktop development with C++" workload is installed via Visual Studio Build Tools
 
 ---
 
