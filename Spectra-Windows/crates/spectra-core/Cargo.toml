@@ -1,0 +1,27 @@
+[package]
+name = "spectra-core"
+version = "0.1.2"
+edition = "2021"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+ulid = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+schemars = { workspace = true, features = ["chrono04"] }
+hmac = { workspace = true }
+sha2 = { workspace = true }
+sha1 = { workspace = true }
+md5 = { workspace = true }
+hex = { workspace = true }
+base64 = { workspace = true }
+rand = { workspace = true }
+urlencoding = { workspace = true }
+open = { workspace = true }
+keyring = { workspace = true }
+serde_yaml = { workspace = true }
+shell-words = { workspace = true }
+sqlx = { workspace = true }
