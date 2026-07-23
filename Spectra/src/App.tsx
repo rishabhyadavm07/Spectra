@@ -298,11 +298,16 @@ function App() {
       request_id: string;
       environment_id?: string | null;
       force_send?: boolean;
+      highlight_field?: string | null;
     }>("automation://prepare-request", async (event) => {
-      const { request_id, environment_id, force_send } = event.payload;
+      const { request_id, environment_id, force_send, highlight_field } = event.payload;
       let workspaceId: string | null = null;
       let name: string | null = null;
       let url: string | null = null;
+      // A box from a previous search_response call would otherwise still be
+      // showing on whatever tab it was drawn on when a plain screenshot/focus
+      // request comes in next.
+      responsePanelComponentRef.current?.clearHighlight();
       try {
         const req = await api.openRequest(request_id);
         workspaceId = req.workspace_id;
@@ -375,6 +380,24 @@ function App() {
         // so two rAFs is enough to guarantee the paint has happened.
         await new Promise<void>((resolve) => setTimeout(resolve, 50));
 
+        let highlightMatchCount: number | null = null;
+        let highlightFirstMatchLine: number | null = null;
+        if (highlight_field && responsePanelComponentRef.current) {
+          const result =
+            await responsePanelComponentRef.current.highlightField(highlight_field);
+          highlightMatchCount = result.matchCount;
+          highlightFirstMatchLine = result.firstMatchLine;
+          if (highlightMatchCount > 0) {
+            // Wait for the scroll/decoration paint to settle before the
+            // Rust side screenshots the window.
+            await new Promise<void>((resolve) =>
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() => resolve()),
+              ),
+            );
+          }
+        }
+
         await api.automationTabReady({
           request_id,
           workspace_id: workspaceId,
@@ -382,6 +405,8 @@ function App() {
           url,
           rendered: true,
           send_error: sendError,
+          highlight_match_count: highlightMatchCount,
+          highlight_first_match_line: highlightFirstMatchLine,
         });
       } catch (e) {
         // If anything above throws (e.g. the request_id doesn't resolve at
@@ -470,13 +495,11 @@ function App() {
         let firstMatchLine = null;
 
         if (responsePanelComponentRef.current) {
-          const matches = responsePanelComponentRef.current.findMatches(query);
-          matchCount = matches.length;
-          if (matches.length > 0) {
-            firstMatchLine = matches[0].range.startLineNumber;
-            responsePanelComponentRef.current.revealLine(firstMatchLine);
-
-            // Wait for scroll to settle
+          const result = await responsePanelComponentRef.current.highlightField(query);
+          matchCount = result.matchCount;
+          firstMatchLine = result.firstMatchLine;
+          if (matchCount > 0) {
+            // Wait for the scroll/decoration paint to settle
             await new Promise<void>((resolve) =>
               requestAnimationFrame(() =>
                 requestAnimationFrame(() => resolve()),

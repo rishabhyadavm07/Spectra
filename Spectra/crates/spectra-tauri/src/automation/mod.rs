@@ -62,6 +62,15 @@ pub struct ScreenshotRequest {
     pub environment_id: Option<String>,
     #[serde(default)]
     pub force_send: bool,
+    /// The field the caller already knows it's validating (e.g. a JSON key
+    /// like `"user_id":`) — if set, the frontend draws a highlight box
+    /// around it (see `ResponsePanel.tsx`'s `highlightField`) before this
+    /// event's screenshot is taken. Only ever populated via
+    /// `SendAndScreenshotRequest.highlight_field`; the other request kinds
+    /// that share this payload shape (`ScreenshotRequest`/`FocusRequest`)
+    /// have no way to set it.
+    #[serde(default)]
+    pub highlight_field: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,6 +105,9 @@ pub struct SendAndScreenshotRequest {
     pub save_path: String,
     #[serde(default)]
     pub environment_id: Option<String>,
+    /// The field to highlight before screenshotting — see `ScreenshotRequest::highlight_field`.
+    #[serde(default)]
+    pub highlight_field: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -131,6 +143,14 @@ pub struct TabReadyReport {
     /// if the frontend gave up (e.g. couldn't resolve the request at all).
     pub rendered: bool,
     pub send_error: Option<String>,
+    /// Only set when the request carried a `highlight_field` — how many
+    /// matches `ResponsePanel.tsx`'s `highlightField` found (0 means the
+    /// field wasn't found, so no box was drawn, but the screenshot was
+    /// still taken).
+    #[serde(default)]
+    pub highlight_match_count: Option<usize>,
+    #[serde(default)]
+    pub highlight_first_match_line: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -334,6 +354,7 @@ async fn wait_for_frontend(
     request_id: &str,
     environment_id: Option<String>,
     force_send: bool,
+    highlight_field: Option<String>,
 ) -> Result<TabReadyReport, String> {
     let state = app.state::<AutomationState>();
     let notify = state.register_waiter(request_id).await;
@@ -343,6 +364,7 @@ async fn wait_for_frontend(
         save_path: String::new(),
         environment_id,
         force_send,
+        highlight_field,
     };
     if let Err(e) = app.emit("automation://prepare-request", &payload) {
         state.clear_waiter(request_id).await;
@@ -367,14 +389,14 @@ async fn wait_for_frontend(
 }
 
 async fn handle_focus_request(app: &AppHandle, req: FocusRequest) -> FocusResponse {
-    match wait_for_frontend(app, &req.request_id, req.environment_id, req.force_send).await {
+    match wait_for_frontend(app, &req.request_id, req.environment_id, req.force_send, None).await {
         Ok(report) => FocusResponse { success: report.rendered, report: Some(report), error: None },
         Err(e) => FocusResponse { success: false, report: None, error: Some(e) },
     }
 }
 
 async fn handle_screenshot_request(app: &AppHandle, req: ScreenshotRequest) -> ScreenshotResponse {
-    let report = match wait_for_frontend(app, &req.request_id, req.environment_id, req.force_send).await {
+    let report = match wait_for_frontend(app, &req.request_id, req.environment_id, req.force_send, None).await {
         Ok(report) => report,
         Err(e) => return ScreenshotResponse { success: false, saved_path: None, error: Some(e) },
     };
@@ -397,7 +419,7 @@ async fn handle_screenshot_request(app: &AppHandle, req: ScreenshotRequest) -> S
 }
 
 async fn handle_send_and_screenshot_request(app: &AppHandle, req: SendAndScreenshotRequest) -> SendAndScreenshotResponse {
-    let report = match wait_for_frontend(app, &req.request_id, req.environment_id, false).await {
+    let report = match wait_for_frontend(app, &req.request_id, req.environment_id, false, req.highlight_field.clone()).await {
         Ok(report) => report,
         Err(e) => return SendAndScreenshotResponse { success: false, saved_path: None, report: None, error: Some(e) },
     };

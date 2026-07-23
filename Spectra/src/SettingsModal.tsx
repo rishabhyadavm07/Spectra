@@ -245,7 +245,7 @@ export function SettingsModal({ onClose }: Props) {
                 }}
               >
                 <h5 style={{ margin: "0 0 12px 0", color: "var(--text-main)" }}>
-                  Cursor Configuration
+                  Claude Configuration
                 </h5>
                 <p
                   style={{
@@ -254,7 +254,7 @@ export function SettingsModal({ onClose }: Props) {
                     margin: "0 0 8px 0",
                   }}
                 >
-                  Add the following to your Cursor MCP settings:
+                  Add the following to your Claude MCP settings:
                 </p>
                 <p
                   style={{
