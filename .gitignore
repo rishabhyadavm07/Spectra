@@ -32,3 +32,6 @@ Thumbs.db
 
 # === Misc ===
 **/body.html
+
+# === Local tooling state (machine-specific, not project source) ===
+.claude/

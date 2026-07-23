@@ -30,7 +30,14 @@ enum IpcRequest {
     #[serde(rename = "set_ui_line_numbers")]
     SetUiLineNumbers { show: bool },
     #[serde(rename = "send_and_screenshot")]
-    SendAndScreenshot { request_id: String, save_path: String, #[serde(skip_serializing_if = "Option::is_none")] environment_id: Option<String> },
+    SendAndScreenshot {
+        request_id: String,
+        save_path: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        environment_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        highlight_field: Option<String>,
+    },
     #[serde(rename = "search_response")]
     SearchResponse { request_id: String, query: String, save_path: String, #[serde(skip_serializing_if = "Option::is_none")] environment_id: Option<String> },
 }
@@ -52,6 +59,11 @@ pub struct TabReadyReport {
     pub url: Option<String>,
     pub rendered: bool,
     pub send_error: Option<String>,
+    /// Only set when the call included `highlight_field` — how many matches
+    /// were found in the response body (0 means the field wasn't found, so
+    /// no box was drawn, but the screenshot was still taken).
+    pub highlight_match_count: Option<usize>,
+    pub highlight_first_match_line: Option<usize>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -200,13 +212,14 @@ pub async fn request_send_and_screenshot(
     request_id: String,
     save_path: String,
     environment_id: Option<String>,
+    highlight_field: Option<String>,
 ) -> Result<(String, TabReadyReport), String> {
     let path = socket_path();
     let mut stream = UnixStream::connect(&path).await.map_err(|_| {
         "Spectra GUI is not running (couldn't connect to ~/.spectra/automation.sock) — start it with `npm run tauri dev` first".to_string()
     })?;
 
-    let req = IpcRequest::SendAndScreenshot { request_id, save_path, environment_id };
+    let req = IpcRequest::SendAndScreenshot { request_id, save_path, environment_id, highlight_field };
     let mut line = serde_json::to_string(&req).map_err(|e| format!("failed to encode request: {e}"))?;
     line.push('\n');
 
@@ -234,6 +247,8 @@ pub async fn request_send_and_screenshot(
                     url: None,
                     rendered: false,
                     send_error: None,
+                    highlight_match_count: None,
+                    highlight_first_match_line: None,
                 });
                 Ok((path, report))
             } else {

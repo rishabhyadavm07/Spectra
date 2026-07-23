@@ -360,6 +360,13 @@ pub struct SendAndScreenshotParams {
     /// If set, truncate the response body in the returned JSON.
     #[allow(dead_code)]
     pub max_body_bytes: Option<usize>,
+    /// The exact field you already know you're validating in the response
+    /// (e.g. a JSON key with its quotes/colon, like `"user_id":`) — if set,
+    /// draws a highlight box around just that field (its key, and its full
+    /// value if the value is itself a nested object/array — never sibling
+    /// fields) before the screenshot is taken. Omit to screenshot without
+    /// marking anything.
+    pub highlight_field: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -673,7 +680,7 @@ impl SpectraServer {
     }
 
     #[tool(
-        description = "Send a request and capture a screenshot of the result in one step. Saves 2 round trips compared to focusing then screenshotting."
+        description = "Send a request and capture a screenshot of the result in one step. Saves 2 round trips compared to focusing then screenshotting. Pass highlight_field to also draw a box around the specific field you're validating before the screenshot is taken — the report's highlight_match_count tells you whether it was actually found (0 means no box was drawn, but the screenshot still was)."
     )]
     async fn send_and_screenshot(
         &self,
@@ -681,7 +688,7 @@ impl SpectraServer {
     ) -> Result<String, String> {
         let p = params.0;
         let (saved_path, report) =
-            crate::automation_client::request_send_and_screenshot(p.request_id, p.save_path, p.environment_id).await?;
+            crate::automation_client::request_send_and_screenshot(p.request_id, p.save_path, p.environment_id, p.highlight_field).await?;
         
         let res = serde_json::json!({
             "success": true,
@@ -697,7 +704,7 @@ impl SpectraServer {
     }
 
     #[tool(
-        description = "Open a request's tab, search for text in the response, scroll to it, and take a screenshot."
+        description = "Open a request's tab, find the field you're already validating in the response body, draw a highlight box around just that field (its key, and its full value if the value is itself a nested object/array — never sibling fields), scroll it into view, and take a screenshot. Pass search_text as the exact field you know you're checking, e.g. a JSON key with its quotes/colon like \"user_id\": , so it targets that field precisely rather than an unrelated substring elsewhere in the body."
     )]
     async fn search_response(
         &self,

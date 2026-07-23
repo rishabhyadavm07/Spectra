@@ -240,6 +240,8 @@ export interface AutomationTabReadyReport {
   url: string | null;
   rendered: boolean;
   send_error: string | null;
+  highlight_match_count?: number | null;
+  highlight_first_match_line?: number | null;
 }
 
 export interface AutomationSearchReadyReport {

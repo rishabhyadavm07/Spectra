@@ -24,6 +24,8 @@
   --syntax-string: var(--success);
   --syntax-num: #1a66cc;
   --syntax-bool: var(--danger);
+
+  --field-highlight: #000000;
 }
 
 html.dark {
@@ -52,6 +54,8 @@ html.dark {
   --syntax-string: var(--success);
   --syntax-num: var(--primary-light);
   --syntax-bool: #f2a65a;
+
+  --field-highlight: #ffffff;
 }
 
 html.crimson {
@@ -80,6 +84,8 @@ html.crimson {
   --syntax-string: #4caf50;
   --syntax-num: #ff6b77;
   --syntax-bool: #ff8080;
+
+  --field-highlight: #ffffff;
 }
 
 :root {
@@ -1658,6 +1664,20 @@ button.workspace-switcher-item:hover {
   flex: 1;
   overflow: auto;
   min-width: 0;
+}
+
+/* Field highlight box drawn by ResponsePanel's highlightField(), one of these
+   classes per boxed line so the border reads as a single rectangle around a
+   (possibly multi-line) JSON value rather than a box per line. */
+.field-highlight-line {
+  border-left: 2px solid var(--field-highlight);
+  border-right: 2px solid var(--field-highlight);
+}
+.field-highlight-top {
+  border-top: 2px solid var(--field-highlight);
+}
+.field-highlight-bottom {
+  border-bottom: 2px solid var(--field-highlight);
 }
 
 .response-body,
